@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: transaction-service
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.example.transactionservice: DEBUG
+
+datasource:
+  url: jdbc:mysql://localhost:3306/transaction_db
+  username: your_db_username
+  password: your_db_password
+  driver-class-name: com.mysql.cj.jdbc.Driver
+
+jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: true
+
+transaction:
+  retry:
+    max-attempts: 3
+    backoff:
+      delay: 1000
+      multiplier: 2.0
+
+metrics:
+  enabled: true
+  endpoint:
+    web:
+      exposure:
+        include: "*"
+
+idempotency:
+  enabled: true
+  timeout: 30000
+
+duplicate-detection:
+  enabled: true
+  check-interval: 60000
