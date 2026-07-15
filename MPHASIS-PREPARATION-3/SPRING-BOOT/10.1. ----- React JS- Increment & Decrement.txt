@@ -1,0 +1,61 @@
+
+
+1. Increment and Decrement using useState:
+
+	function Counter() {
+
+		const [count, setCount] = useState(0);
+
+		const increment = () => setCount(c => c + 1);
+
+		const decrement = () => setCount(c => c - 1);
+
+		return (
+			<>
+				<p>{count}</p>
+
+				<button onClick={increment}>+</button>
+
+				<button onClick={decrement}>-</button>
+			</>
+		);
+	}
+	
+2. Increment and Decrement using useReducer:
+
+	const initialState = { count: 0 };
+
+	function reducer(state, action) {
+
+		switch(action.type) {
+
+			case 'increment':
+				return { count: state.count + 1 };
+
+			case 'decrement':
+				return { count: state.count - 1 };
+
+			default:
+				return state;
+		}
+	}
+	
+	Component:
+	
+		function Counter() {
+
+			const [state, dispatch] = useReducer(reducer, initialState);
+			return (
+				<>
+					<p>{state.count}</p>
+					<button onClick={() => dispatch({ type: 'increment' }) } > + </button>
+					<button onClick={() => dispatch({ type: 'decrement' }) } > - </button>
+				</>
+			);
+		}
+		
+		dispatch(action)
+				↓
+		reducer(state, action)
+				↓
+		new state

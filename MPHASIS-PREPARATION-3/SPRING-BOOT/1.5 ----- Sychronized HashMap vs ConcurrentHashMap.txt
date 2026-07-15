@@ -1,0 +1,106 @@
+
+-----------------------------------Sychronized HashMap vs ConcurrentHashMap
+
+Collections.synchronizedMap() and ConcurrentHashMap both make a HashMap thread-safe, but they do it very differently.
+
+| Feature        | Synchronized HashMap          | ConcurrentHashMap                        |
+| -------------- | ----------------------------- | ---------------------------------------- |
+| Thread Safety  | Yes                           | Yes                                      |
+| Locking        | Entire map locked             | Fine-grained locking                     |
+| Performance    | Slower under high concurrency | Faster under high concurrency            |
+| Multiple Reads | One thread at a time          | Multiple threads can read simultaneously |
+| Iteration      | Must manually synchronize     | Safe concurrent iteration                |
+| Suitable For   | Low concurrency               | High concurrency                         |
+
+1. Synchronized HashMap:
+
+	Map<Integer, String> map = Collections.synchronizedMap(new HashMap<>());
+
+	How it works
+	Every method acquires a single lock on the whole map.
+	
+	Must manually synchronize:
+			
+			Map<Integer, String> map =
+				Collections.synchronizedMap(new HashMap<>());
+
+			synchronized (map) {
+				for (Integer key : map.keySet()) {
+					System.out.println(key);
+				}
+			}
+		Without synchronization:ConcurrentModificationException
+		
+	ConcurrentHashMap: null will suport, bucket level locking.
+	
+		for (Integer key : map.keySet()) {
+			System.out.println(key);
+		}
+	No explicit synchronization required.
+	The iterator is weakly consistent.
+	
+Use ConcurrentHashMap When
+
+		Multi-threaded applications
+		High traffic APIs
+		Microservices
+		Caching
+		Counters
+		Thread-safe collections	
+
+Many developers hear "ConcurrentHashMap is synchronized internally" and assume every update locks the whole map. That's not true.
+Short Answer
+✅ Write operations (put, remove, replace) are thread-safe and synchronized internally.
+✅ But they use fine-grained locking, not a single lock for the entire map.
+✅ Multiple threads can update different buckets simultaneously.		
+		
+If keys belong to different buckets:Both operations can proceed concurrently.
+
+What Happens During put()?
+
+ConcurrentHashMap finds the bucket.
+Then it synchronizes only that bucket/node.
+
+	synchronized(bucket) {
+		// update bucket
+	}
+
+	Not:
+
+	synchronized(map) {
+	   // update map
+	}
+
+This is what we call fine-grained synchronization.
+
+What If Two Threads Update the Same Key?
+JavaThread-1:map.put(1, "A");Thread-2:map.put(1, "B");Show more lines
+Both target the same bucket.
+Now one thread acquires the lock first.
+Plain TextT1 gets lockT2 waitsShow more lines
+After T1 finishes:
+Plain TextT2 executesShow more lines
+So writes are still synchronized when they conflict.
+
+
+What If They Update Different Keys?
+JavaThread-1:map.put(1, "A");Thread-2:map.put(100, "B");Show more lines
+Different buckets:
+Plain TextT1 gets Bucket-1 lockT2 gets Bucket-5 lockShow more lines
+Both execute simultaneously.
+Plain TextNo blocking ✅Show more lines
+
+What About Reads?
+Javamap.get(1);Show more lines
+Most reads are lock-free.
+Plain TextThread-1 -> get()Thread-2 -> get()Thread-3 -> get()Show more lines
+All can execute together.
+No synchronization required.
+This is why ConcurrentHashMap is much faster than synchronizedMap for read-heavy workloads.
+
+Interview Answer
+
+In ConcurrentHashMap, write operations are synchronized internally, but the synchronization is applied only to the affected bucket
+ (or node), not to the entire map. Therefore, multiple threads can update different buckets concurrently. 
+ If two threads modify the same bucket, one waits while the other completes.
+ Reads are mostly lock-free, which provides much better concurrency than Collections.synchronizedMap().

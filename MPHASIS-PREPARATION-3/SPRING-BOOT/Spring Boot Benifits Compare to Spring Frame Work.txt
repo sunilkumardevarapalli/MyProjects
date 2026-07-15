@@ -1,0 +1,238 @@
+For a **12+ years experienced developer**, this question is usually asked as:
+
+> **"Why do we use Spring Boot instead of the traditional Spring Framework?"**
+
+## Spring Framework vs Spring Boot
+
+| Feature               | Spring Framework              | Spring Boot                      |
+| --------------------- | ----------------------------- | -------------------------------- |
+| Configuration         | XML/Java Config required      | Auto Configuration               |
+| Server setup          | Need external Tomcat/WebLogic | Embedded Tomcat/Jetty/Undertow   |
+| Dependency Management | Manually manage versions      | Starter dependencies             |
+| Boilerplate Code      | More                          | Minimal                          |
+| Deployment            | WAR file                      | Executable JAR                   |
+| Production Features   | Need manual setup             | Actuator, Health Checks, Metrics |
+| Microservices Support | Additional configuration      | Built-in support                 |
+| Development Speed     | Slower                        | Faster                           |
+| Opinionated Defaults  | No                            | Yes                              |
+| Monitoring            | Need separate configuration   | Spring Boot Actuator             |
+
+---
+
+# Why Spring Boot over Spring?
+
+## 1. Auto Configuration
+
+### Spring
+
+```java
+@Configuration
+public class AppConfig {
+
+    @Bean
+    public DataSource dataSource() {
+        return new HikariDataSource();
+    }
+}
+```
+
+Need to configure everything manually.
+
+### Spring Boot
+
+Just add:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+```
+
+Spring Boot automatically configures:
+
+* DataSource
+* EntityManager
+* TransactionManager
+* Hibernate
+
+---
+
+## 2. Embedded Server
+
+### Spring
+
+Need external Tomcat installation.
+
+Deploy:
+
+```text
+myapp.war
+```
+
+into
+
+```text
+Tomcat/webapps/
+```
+
+### Spring Boot
+
+Embedded Tomcat:
+
+```java
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class,args);
+    }
+}
+```
+
+Run:
+
+```bash
+java -jar app.jar
+```
+
+No external server required.
+
+---
+
+## 3. Starter Dependencies
+
+### Spring
+
+Need compatible versions manually:
+
+```xml
+spring-core
+spring-webmvc
+spring-context
+spring-aop
+jackson
+hibernate
+```
+
+### Spring Boot
+
+Single dependency:
+
+```xml
+spring-boot-starter-web
+```
+
+Automatically brings:
+
+* Spring MVC
+* Jackson
+* Validation
+* Embedded Tomcat
+
+---
+
+## 4. Production Ready Features
+
+Spring Boot provides Actuator endpoints:
+
+```xml
+spring-boot-starter-actuator
+```
+
+Endpoints:
+
+```text
+/actuator/health
+/actuator/metrics
+/actuator/info
+/actuator/env
+```
+
+Useful for:
+
+* Kubernetes
+* Docker
+* Monitoring
+* Prometheus
+
+---
+
+## 5. Externalized Configuration
+
+Spring Boot:
+
+```properties
+server.port=8081
+
+spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+```
+
+Supports:
+
+* application.properties
+* application.yml
+* Environment variables
+* Profiles
+
+---
+
+## 6. Microservices Support
+
+Spring Boot integrates with:
+
+* Spring Cloud
+* Eureka
+* Config Server
+* API Gateway
+* Kafka
+* Docker
+* Kubernetes
+
+Ideal for cloud-native applications.
+
+---
+
+## Real-Time Example
+
+### Traditional Spring
+
+To expose one REST API, configure:
+
+* DispatcherServlet
+* Component Scan
+* View Resolver
+* Jackson Converter
+* Tomcat deployment
+
+### Spring Boot
+
+Just:
+
+```java
+@RestController
+public class EmployeeController {
+
+    @GetMapping("/employees")
+    public List<Employee> getEmployees() {
+        return service.findAll();
+    }
+}
+```
+
+Run:
+
+```bash
+mvn spring-boot:run
+```
+
+API is available immediately.
+
+---
+
+# Senior-Level Interview Answer
+
+> **Spring Boot is built on top of Spring Framework. It eliminates boilerplate configuration through auto-configuration and starter dependencies, provides embedded servers, production-ready features like Actuator, and accelerates microservices development. We use Spring Boot because it reduces configuration effort, improves developer productivity, and is well-suited for cloud-native and microservice architectures. Spring Framework provides the core features (IoC, DI, AOP), while Spring Boot simplifies and automates their usage.**
+
+### In one line:
+
+> **Spring Boot = Spring Framework + Auto Configuration + Embedded Server + Starter Dependencies + Production Ready Features.**

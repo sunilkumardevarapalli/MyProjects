@@ -1,0 +1,205 @@
+
+
+In a Spring Boot REST API, PATCH is used for partial updates, whereas PUT replaces the entire resource.
+
+For example, suppose you have a user:
+
+{
+  "id": 1,
+  "name": "John",
+  "email": "john@example.com",
+  "phone": "1234567890"
+}
+
+If you want to update only the email, you can send a PATCH request:
+
+PATCH:
+
+	PATCH /users/1
+	Content-Type: application/json
+
+	{
+	  "email": "john.new@example.com"
+	}
+
+	The result becomes:
+
+	{
+	  "id": 1,
+	  "name": "John",
+	  "email": "john.new@example.com",
+	  "phone": "1234567890"
+	}
+
+	The name and phone fields remain unchanged.
+
+@RestController
+@RequestMapping("/users")
+public class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    @PatchMapping("/{id}")
+    public User patchUser(@PathVariable Long id,
+                          @RequestBody Map<String, Object> updates) {
+        return userService.patchUser(id, updates);
+    }
+}
+
+
+@Service
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public User patchUser(Long id, Map<String, Object> updates) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        updates.forEach((key, value) -> {
+            Field field = ReflectionUtils.findField(User.class, key);
+            field.setAccessible(true);
+            ReflectionUtils.setField(field, user, value);
+        });
+
+        return userRepository.save(user);
+    }
+}
+
+
+## Using DTO (Recommended)
+
+```java
+@Data
+public class UserPatchDTO {
+    private String name;
+    private String email;
+    private String phone;
+}
+```
+
+```java
+@PatchMapping("/{id}")
+public User patchUser(@PathVariable Long id,
+                      @RequestBody UserPatchDTO dto) {
+
+    User user = userRepository.findById(id)
+            .orElseThrow();
+
+    if (dto.getName() != null) {
+        user.setName(dto.getName());
+    }
+
+    if (dto.getEmail() != null) {
+        user.setEmail(dto.getEmail());
+    }
+
+    if (dto.getPhone() != null) {
+        user.setPhone(dto.getPhone());
+    }
+
+    return userRepository.save(user);
+}
+```
+
+## Using `ObjectMapper`
+
+```java
+@Autowired
+private ObjectMapper objectMapper;
+
+public User patchUser(Long id, Map<String, Object> updates) {
+
+    User user = userRepository.findById(id)
+            .orElseThrow();
+
+    objectMapper.updateValue(user, updates);
+
+    return userRepository.save(user);
+}
+```
+
+## Difference between PUT and PATCH
+
+| PUT                            | PATCH                           |
+| ------------------------------ | ------------------------------- |
+| Replaces entire resource       | Updates only specified fields   |
+| Idempotent                     | Usually idempotent              |
+| Sends all fields               | Sends changed fields only       |
+| Missing fields may become null | Missing fields remain unchanged |
+
+### Example
+
+#### PUT
+
+Request:
+
+```json
+{
+  "name": "John",
+  "email": "john.new@example.com"
+}
+```
+
+If `phone` is omitted, it may become `null`.
+
+#### PATCH
+
+Request:
+
+```json
+{
+  "email": "john.new@example.com"
+}
+```
+
+Only `email` changes; other fields are preserved.
+
+### Interview Answer
+
+> `PATCH` in Spring Boot is used for partial updates of a resource. The client sends only the fields that need to be changed. The server fetches the existing entity, merges the updated values, and saves it back to the database. This avoids sending and updating the entire resource, unlike `PUT`, which replaces the complete resource.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

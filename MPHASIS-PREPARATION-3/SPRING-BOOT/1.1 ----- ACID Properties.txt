@@ -1,0 +1,77 @@
+----------------------------------------------------1.ACID Properties---------------------------------------
+
+1.ACID Properties
+
+	ACID Properties are a set of properties in Database Management Systems (DBMS) 
+	that ensure reliable and consistent transaction processing.
+	
+	what is the difference between Consistency and Isolation ?
+
+1. Atomicity (All or Nothing): success or Failure before transaction.
+
+	A transaction is treated as a single unit. Either all operations are completed successfully or none of them are performed.
+	
+	Example: Transferring ₹1000 from Account A to Account B:
+
+	Deduct ₹1000 from A
+	Add ₹1000 to B
+
+	If the system crashes after deducting money from A but before adding it to B, the entire transaction is rolled back.
+
+2. Consistency: Before and after transaction the amount should maintain same.
+
+	A transaction must bring the database from one valid state to another valid state, maintaining all defined rules, constraints, and relationships.
+	Example:
+	If the total balance of two accounts is ₹10,000 before a transaction, it should remain ₹10,000 after the transaction.
+
+3. Isolation:
+
+	Multiple transactions executing simultaneously should not interfere with each other. 
+	Each transaction should appear as if it is executing alone.
+	
+	Example:If two users are booking the last available seat simultaneously, isolation ensures only one booking succeeds.
+
+4. Durability
+
+	Once a transaction is successfully committed, its changes are permanently stored, even if there is a power failure or system crash.
+	Example:
+	After an online payment is confirmed, the payment record remains saved even if the database server crashes immediately afterward.
+	
+what is the difference between Atomicity and Durability ?
+		
+	The key difference is:
+
+	Atomicity = What happens before commit.Focus: Prevents partial transactions.
+	
+	Durability = What happens after commit.Focus: Prevents loss of committed data.
+
+	Atomicity (All or Nothing):
+	
+	Atomicity ensures that a transaction is treated as a single unit.
+	If any step fails, all previous changes are rolled back.
+
+Atomicity:
+
+	All operations succeed or none do,
+	Handles transaction failures,
+	Uses rollback,
+	Concerned with transaction execution,
+	"No partial updates"
+	
+Durability:
+
+	Committed changes are permanently stored,
+	Handles system/database crashes,
+	Uses logs, checkpoints, persistent storage,
+	Concerned with data persistence after commit,
+	"No lost committed updates"
+	
+Simple Memory Trick
+
+Atomicity → "All or Nothing"
+Durability → "Forever Saved"
+
+what is the difference between Consistency and Isolation ?
+
+	Consistency → "Correct data"
+	Isolation → "Concurrent users"

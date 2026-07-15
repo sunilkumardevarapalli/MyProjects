@@ -1,0 +1,617 @@
+
+### Java Stream & Collections Interview Questions
+
+1. How do you sort a `Map` by **key**?
+2. How do you sort a `Map` by **value**?
+3. How do you find the **Nth highest salary** from a list of employees?
+4. How do you find the **maximum repeating character** in a string?
+5. How do you sort the characters of a string in **ascending order**?
+6. How do you remove **special characters** from a string?
+7. How do you print the **Fibonacci series** using Java Streams?
+8. How do you find the **Nth Fibonacci number**?
+9. How do you find the **longest string** in a list?
+10. How do you group persons by **age**?
+11. How do you sort strings by **length in descending order**?
+12. How do you find the **common elements** between two arrays?
+13. How do you calculate the **average** of a list using `mapToInt()`?
+14. How do you check whether **parentheses are balanced**?
+15. How do you count the **occurrence of each character** in a string?
+16. How do you find the **missing number** in an array?
+17. How do you find the **maximum number** in an array?
+18. How do you find the **maximum number** in a list using Streams?
+19. How do you check whether two strings are **anagrams**?
+20. How do you check whether a string is a **palindrome**?
+21. How do you check whether a **number is a palindrome**?
+22. How do you sort an array using `Arrays.sort()`?
+23. How do you create an **immutable class** in Java?
+24. How do you count **duplicate words** in a string?
+25. How do you convert a comma-separated string into a `List<Integer>`?
+26. How do you find **duplicate numbers** in a list?
+27. How do you find **duplicate strings** in a list?
+28. How do you find all strings that **start with a specific character**?
+29. How do you find the **first non-repeating character** in a string?
+30. How do you find the **first repeating character** in a string?
+31. How do you find the **second largest number** in a list?
+32. How do you print the **middle character(s)** of a string?
+33. How do you count pairs in an array with a **given sum**?
+34. How do you count the **odd numbers** in a list?
+35. How do you sort objects by **first name and then last name**?
+36. How do you group objects by **multiple fields** using `groupingBy()`?
+37. How do you **rotate an array left** by two positions?
+38. How do you **rotate an array right** by two positions?
+39. How do you find the **index of an element** in an array using Streams?
+40. How do you reverse **each word** in a string while preserving word order?
+41. How do you find the **sum of digits until a single digit** is obtained?
+42. How do you print all **prime numbers** from a list using Streams?
+43. How do you print all **even numbers** from a list using Streams?
+
+
+-------------------------------------------------------------------------------------------------------
+
+# 1. Sort based on Key in Map
+
+  
+Map<Integer, String> map = new HashMap<>();
+
+map.put(3, "C");
+map.put(1, "A");
+map.put(2, "B");
+
+map.entrySet()
+   .stream()
+   .sorted(Map.Entry.comparingByKey())
+   .forEach(System.out::println);
+
+
+
+
+# 2. Sort based on Value in Map
+
+  
+map.entrySet()
+   .stream()
+   .sorted(Map.Entry.comparingByValue())
+   .forEach(System.out::println);
+
+
+
+
+# 3. Find Nth Highest Salary
+
+ 
+int n = 2;
+
+Optional<Integer> salary =
+        empList.stream()
+               .map(Emp::getSalary)
+               .distinct()
+               .sorted(Comparator.reverseOrder())
+               .skip(n - 1)
+               .findFirst();
+
+
+
+
+# 4. Max Repeating Item in string
+
+  
+String input = "programming";
+
+Character c =
+        input.chars()
+             .mapToObj(ch -> (char) ch)
+             .collect(Collectors.groupingBy(
+                     Function.identity(),
+                     Collectors.counting()
+             ))
+             .entrySet()
+             .stream()
+             .max(Map.Entry.comparingByValue())
+             .map(Map.Entry::getKey)
+             .orElse(null);
+
+# 5. Sort String ASC
+
+String str = "dcba";
+
+String result =
+        str.chars()
+           .sorted()
+           .mapToObj(c -> String.valueOf((char) c))
+           .collect(Collectors.joining());
+
+System.out.println(result);
+
+# 6. Remove Special Characters
+
+  
+String str = "abc@123#";
+
+String result = str.replaceAll("[^a-zA-Z0-9]", "");
+
+System.out.println(result);
+
+
+# 9. Longest String
+ 
+String longest =
+        list.stream()
+            .max(Comparator.comparing(String::length))
+            .orElse(null);
+
+
+
+
+# 10. Group Persons by Age
+ 
+Map<Integer, List<Person>> map =
+        persons.stream()
+               .collect(Collectors.groupingBy(Person::getAge));
+
+
+
+
+# 11. Sort Strings by Length Desc
+ 
+list.stream()
+    .sorted(Comparator.comparing(String::length).reversed())
+    .forEach(System.out::println);
+
+
+
+
+# 12. Common Elements Between Arrays
+ 
+int[] a = {1,2,3,4};
+int[] b = {3,4,5,6};
+
+List<Integer> result =
+        Arrays.stream(a)
+              .filter(x ->
+                   Arrays.stream(b).anyMatch(y -> y == x))
+              .boxed()
+              .collect(Collectors.toList());
+
+
+
+
+# 13. Average Using mapToInt
+ 
+double avg =
+        list.stream()
+            .mapToInt(Integer::intValue)
+            .average()
+            .orElse(0);
+
+
+
+
+# 14. Balanced Parenthesis
+ 
+String str = "{[()]}";
+
+Stack<Character> stack = new Stack<>();
+
+for(char c : str.toCharArray()) {
+
+    if(c=='(' || c=='{' || c=='[')
+        stack.push(c);
+
+    else {
+        if(stack.isEmpty()) {
+            System.out.println("Not Balanced");
+            return;
+        }
+
+        char ch = stack.pop();
+
+        if((c==')' && ch!='(') ||
+           (c=='}' && ch!='{') ||
+           (c==']' && ch!='[')) {
+            System.out.println("Not Balanced");
+            return;
+        }
+    }
+}
+
+System.out.println(stack.isEmpty() ? "Balanced" : "Not Balanced");
+
+
+
+
+# 15. Duplicate Character Count
+ 
+String str = "programming";
+
+Map<Character, Long> map =
+        str.chars()
+           .mapToObj(c -> (char)c)
+           .collect(Collectors.groupingBy(
+                   Function.identity(),
+                   Collectors.counting()
+           ));
+
+System.out.println(map);
+
+
+
+
+# 16. Find Missing Number
+ 
+int[] arr = {1,2,3,5};
+
+int n = 5;
+
+int sum = Arrays.stream(arr).sum();
+
+int expected = n * (n+1)/2;
+
+System.out.println(expected - sum);
+
+
+
+
+# 17. Find Max Number in Array
+ 
+int max =
+        Arrays.stream(arr)
+              .max()
+              .getAsInt();
+
+
+
+
+# 18. Find Max Number
+ 
+int max = list.stream()
+              .max(Integer::compare)
+              .get();
+
+
+
+
+# 19. Anagram
+ 
+String a = "listen";
+String b = "silent";
+
+boolean result =
+        Arrays.equals(
+                a.chars().sorted().toArray(),
+                b.chars().sorted().toArray()
+        );
+
+System.out.println(result);
+
+
+
+
+# 20. Palindrome
+ 
+String str = "madam";
+
+boolean result =
+        str.equals(
+                new StringBuilder(str).reverse().toString()
+        );
+
+
+
+
+# 21. Palindrome Number
+ 
+int n = 121;
+
+int temp = n;
+int rev = 0;
+
+while(n > 0) {
+    rev = rev*10 + n%10;
+    n = n/10;
+}
+
+System.out.println(temp == rev);
+
+
+
+
+# 22. Array Sort Using Util
+ 
+Arrays.sort(arr);
+
+
+
+
+# 23. Immutable Class
+ 
+final class Emp {
+
+    private final int id;
+
+    public Emp(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+}
+
+
+
+
+# 24. Duplicate Word Count
+ 
+String str = "java java spring";
+
+Map<String, Long> map =
+        Arrays.stream(str.split(" "))
+              .collect(Collectors.groupingBy(
+                      Function.identity(),
+                      Collectors.counting()
+              ));
+
+
+
+
+# 25. Convert String Numbers to List
+ 
+String str = "1,2,3,4";
+
+List<Integer> list =
+        Arrays.stream(str.split(","))
+              .map(Integer::parseInt)
+              .collect(Collectors.toList());
+
+
+
+
+# 26. Duplicate Number
+ 
+List<Integer> duplicates =
+        list.stream()
+            .collect(Collectors.groupingBy(
+                    Function.identity(),
+                    Collectors.counting()
+            ))
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue() > 1)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
+
+
+
+# 27. Print Duplicate Strings
+ 
+List<String> duplicates =
+        list.stream()
+            .collect(Collectors.groupingBy(
+                    Function.identity(),
+                    Collectors.counting()
+            ))
+            .entrySet()
+            .stream()
+            .filter(e -> e.getValue() > 1)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
+
+
+
+# 28. Find String Starts With G
+ 
+list.stream()
+    .filter(s -> s.startsWith("G"))
+    .forEach(System.out::println);
+
+
+
+
+# 29. First Non-Repeating Character
+ 
+Character c =
+        str.chars()
+           .mapToObj(ch -> (char)ch)
+           .collect(Collectors.groupingBy(
+                   Function.identity(),
+                   LinkedHashMap::new,
+                   Collectors.counting()
+           ))
+           .entrySet()
+           .stream()
+           .filter(e -> e.getValue()==1)
+           .map(Map.Entry::getKey)
+           .findFirst()
+           .orElse(null);
+
+
+
+
+# 30. First Repeating Character
+ 
+Set<Character> set = new HashSet<>();
+
+Character result =
+        str.chars()
+           .mapToObj(c -> (char)c)
+           .filter(c -> !set.add(c))
+           .findFirst()
+           .orElse(null);
+
+
+
+
+# 31. Second Max
+ 
+Integer second =
+        list.stream()
+            .distinct()
+            .sorted(Comparator.reverseOrder())
+            .skip(1)
+            .findFirst()
+            .get();
+
+
+
+
+# 32. Middle Characters
+ 
+String str = "ABCDE";
+
+int mid = str.length()/2;
+
+if(str.length()%2==0)
+    System.out.println(str.substring(mid-1, mid+1));
+else
+    System.out.println(str.charAt(mid));
+
+
+
+
+# 33. Count Pair With Given Sum
+ 
+int[] arr = {1,5,7,-1,5};
+
+int sum = 6;
+
+int count = 0;
+
+for(int i=0;i<arr.length;i++) {
+    for(int j=i+1;j<arr.length;j++) {
+        if(arr[i]+arr[j]==sum)
+            count++;
+    }
+}
+
+
+
+
+# 34. Print Odd Number Count
+ 
+long count =
+        list.stream()
+            .filter(n -> n%2!=0)
+            .count();
+
+
+
+
+# 35. Sort Based on firstName and lastName
+ 
+list.stream()
+    .sorted(
+            Comparator.comparing(Person::getFirstName)
+                      .thenComparing(Person::getLastName)
+    )
+    .forEach(System.out::println);
+
+
+
+
+# 36. GroupingBy Multiple Fields
+ 
+Map<String, List<Employee>> map =
+        list.stream()
+            .collect(Collectors.groupingBy(
+                    e -> e.getDept()+"-"+e.getGender()
+            ));
+
+
+
+
+# 37. Rotate Array First Two
+ 
+int[] arr = {1,2,3,4,5};
+
+for(int i=0;i<2;i++) {
+    int first = arr[0];
+
+    for(int j=0;j<arr.length-1;j++)
+        arr[j] = arr[j+1];
+
+    arr[arr.length-1] = first;
+}
+
+
+
+
+# 38. Rotate Last Two Numbers
+ 
+for(int i=0;i<2;i++) {
+
+    int last = arr[arr.length-1];
+
+    for(int j=arr.length-1;j>0;j--)
+        arr[j] = arr[j-1];
+
+    arr[0] = last;
+}
+
+
+
+
+# 39. Find Index of Element
+ 
+int index =
+        IntStream.range(0, arr.length)
+                 .filter(i -> arr[i] == 5)
+                 .findFirst()
+                 .orElse(-1);
+
+
+
+
+# 40. Reverse FirstName to LastName
+ 
+String str = "Sunil Kumar";
+
+String result =
+        Arrays.stream(str.split(" "))
+              .map(s -> new StringBuilder(s).reverse())
+              .collect(Collectors.joining(" "));
+
+
+
+
+# 41. Sum of Digits Until Single Digit
+ 
+int n = 9875;
+
+while(n > 9) {
+
+    int sum = 0;
+
+    while(n > 0) {
+        sum += n % 10;
+        n = n / 10;
+    }
+
+    n = sum;
+}
+
+System.out.println(n);
+
+
+
+
+# 42. Prime and Even Numbers
+
+## Prime
+ 
+list.stream()
+    .filter(n ->
+            IntStream.rangeClosed(2, n/2)
+                     .noneMatch(i -> n%i==0)
+    )
+    .forEach(System.out::println);
+
+
+## Even
+
+ id="k43"
+list.stream()
+    .filter(n -> n%2==0)
+    .forEach(System.out::println);
+

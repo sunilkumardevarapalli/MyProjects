@@ -1,0 +1,116 @@
+
+
+
+@PreDestroy
+      ↓
+DisposableBean.destroy()
+      ↓
+destroyMethod()
+
+
+For application-level cleanup:
+
+* Close JDBC connections
+* Redis connections
+* Mongo clients
+* Executor services
+
+### Use `DisposableBean.destroy()`
+
+For Spring framework or infrastructure components:
+
+* Cache managers
+* Thread pools
+* Event processors
+
+### Use `destroyMethod`
+
+For Third-party classes   or legacy classes: External SDK cleanup  
+
+* Payment SDKs
+* Redis clients
+* FTP clients
+* JMS clients
+
+
+> Use `@PreDestroy` for application-level cleanup such as closing thread pools, Kafka producers, sockets, or flushing caches. 
+
+Use `@PreDestroy` for application-level cleanup such as closing thread pools, Kafka producers, sockets,
+ or flushing caches. 
+ `@PreDestroy` works only if **you own the class**:
+ 
+ -------------------
+ 
+ Use `DisposableBean.destroy()` when implementing Spring infrastructure components. 
+ 
+ 
+ Use `DisposableBean.destroy()` when implementing Spring infrastructure components. chach, 
+ 
+	ExecutorService executor =
+            Executors.newFixedThreadPool(10);
+			
+			 executor.shutdown();
+			 
+			 Stopping event listeners
+			 
+			 ---------------------------
+ 
+ Use `destroyMethod` for third-party classes that cannot be modified. Their execution order during shutdown is:
+
+
+			
+ Use `destroyMethod` for third-party classes that cannot be modified. 
+ Their execution order during shutdown is:these are third-party classes and we cannot annotate them with `@PreDestroy`, 
+ Spring allows us to specify cleanup methods externally using `@Bean(destroyMethod = "...")`. 
+ 
+ This ensures that resources like HTTP connections, thread pools, 
+or sockets held by the SDK are properly released during application shutdown.
+
+you cannot modify the source code. Therefore, use:
+
+@Bean(destroyMethod = "close")
+
+public class PaymentSDK {
+
+    public void initialize() {
+        System.out.println("Payment SDK initialized");
+    }
+
+    public void disconnect() {
+        System.out.println("Payment SDK disconnected");
+    }
+}
+
+
+Spring Configuration:
+
+
+@Configuration
+public class AppConfig {
+
+    @Bean(initMethod = "initialize",
+          destroyMethod = "disconnect")
+    public PaymentSDK paymentSDK() {
+
+        return new PaymentSDK();
+    }
+}
+
+
+
+----------------------
+# Summary
+
+| Scenario               | Recommended                |
+| ---------------------- | -------------------------- |
+| Custom JDBC Connection | `@PreDestroy`              |
+| Redis Connection       | `@PreDestroy`              |
+| Mongo Client           | `@PreDestroy`              |
+| Thread Pool            | `@PreDestroy`              |
+| Framework Components   | `DisposableBean.destroy()` |
+| Spring Infrastructure  | `DisposableBean.destroy()` |
+| Third-party SDKs       | `destroyMethod`            |
+| FTP Client             | `destroyMethod`            |
+| Redis Client (Lettuce) | `destroyMethod`            |
+| JMS Client             | `destroyMethod`            |
+

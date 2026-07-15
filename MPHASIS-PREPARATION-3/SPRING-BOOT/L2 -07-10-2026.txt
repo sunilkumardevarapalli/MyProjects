@@ -1,0 +1,47 @@
+
+
+interface and abstract
+
+comparable and comparator
+
+iterator and listiterator
+
+how to connct different data bases
+
+equals and hashcode
+
+string why it is immutable
+
+If you're referring to Java Streams filter(), you can invoke different queries (or actions) based on different filter 
+conditions in several ways.
+
+string and new String difference
+
+fail fast and fail safe
+
+different LLMs
+
+-----------------------------------------------------------------
+interface and abstract
+
+
+
+
+----------------------------------------------------------------------
+
+ArrayList: Iterator.remove fine
+		   ListIterator.add , set, remove fine
+		   
+		   both cases list.add gives ConcurrentModificationException--> fail-fast iterator
+		   
+CopyOnWriteArrayList: snapshot copy
+
+		list.add and Remove fine --> fail-safe (snapshot-based) iterator.
+		
+		itr.add set, remove will give UnsupportedOperationException
+
+
+
+
+
+

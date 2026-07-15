@@ -1,0 +1,141 @@
+		
+
+OAuth 1.0: Original authorization framework based on signed requests. ( Request Token,Access Token)
+OAuth 2.0: Modern authorization framework based on access tokens and HTTPS/TLS.( Access Token, Refresh Token)
+
+Refresh tokens allow obtaining new access tokens without forcing users to log in again.
+
+
+OAuth 1.0
+
+    Primarily designed for web applications.
+
+OAuth 2.0
+
+	Supports:
+
+	Web apps
+	Mobile apps
+	SPA (Angular/React)
+	APIs
+	Machine-to-machine communication
+
+	through different grant/authorization flows.
+	
+OAuth 1.0:
+Client --> Signed Request --> Server
+
+OAuth 2.0:
+Client --> Bearer Token --> Server
+
+OAuth 2.0 does NOT require JWT.
+
+OAuth 2.0 and JWT are completely different things:
+
+OAuth 2.0 = Authorization framework (how access is granted)
+JWT = Token format (how information is stored in a token)
+
+
+OAuth2 = Process/Protocol
+JWT    = Token Container
+
+Can OAuth2 Work Without JWT?
+
+
+OAuth2 With Opaque Token
+
+
+Client
+  |
+  | token
+  v
+Resource Server
+  |
+  | validate token
+  v
+Authorization Server
+
+
+OAuth2 With JWT
+
+
+Client
+  |
+  | JWT
+  v
+Resource Server
+
+OAuth2: checks UN FW in DB or some other application once have proper details
+
+then generate token with help of JWT.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

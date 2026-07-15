@@ -1,0 +1,71 @@
+
+---------------------------Internal DataStructures of HashSet(HashMap-Bucket Array), Arraylist (Dynamic Array)
+
+Arraylist:Dynamic Array
+
+HashSet: HashMap Internal Structure
+
+	A favorite interview question:
+
+	Is HashSet backed by HashMap?
+
+	✅ Yes.
+
+public class HashSet<E> {
+
+    private transient HashMap<E,Object> map;
+
+    private static final Object PRESENT = new Object();
+
+    public boolean add(E e) {
+        return map.put(e, PRESENT) == null;
+    }
+}
+
+How Elements Are Stored
+When you do:
+
+	set.add("Sunil");
+	set.add("Java");
+	set.add("Spring");
+
+Internally
+
+HashMap
+---------------------
+Key       Value
+---------------------
+Sunil     PRESENT
+Java      PRESENT
+Spring    PRESENT
+
+
+The value is a dummy object.
+Only the key matters.
+
+
+HashMap Internal Structure
+Since HashSet uses HashMap, understanding HashMap is important.
+Internally:
+
+Bucket Array
+
+Why HashSet Does Not Allow Duplicates
+
+HashMap checks:
+
+equals()
+hashCode()
+
+Key already exists.
+
+Interview One-Liner
+ArrayList
+
+ArrayList is internally implemented using a resizable array (Object[]), providing fast random access but slower 
+insertions and deletions in the middle due to element shifting.
+
+HashSet
+
+HashSet is internally backed by a HashMap, where each set element is stored as a key and a dummy constant object
+ is stored as the value. It uses hashing for O(1) average lookup, insertion, and deletion.

@@ -1,0 +1,324 @@
+
+
+application.properties:   spring.threads.virtual.enabled=true
+
+There is no limit how many VT will have per carrier thread.
+
+Example:
+
+CPU available processors = 2
+
+We have :
+
+VT-1
+VT-2
+VT-3
+VT-4
+VT-5
+VT-6
+VT-7
+VT-8
+VT-9
+VT-10
+
+Carrier threads:
+
+		Carrier-1
+		Carrier-2
+
+Initially:
+
+		Carrier-1 ---> VT-1
+		Carrier-2 ---> VT-2
+		
+Diagram:
+
+		VT-1 ---> Carrier-1 ---> OS Thread-1 ---> CPU
+		VT-2 ---> Carrier-2 ---> OS Thread-2 ---> CPU
+
+		VT-3 ---> waiting to run
+		VT-4 ---> waiting to run
+		VT-5 ---> waiting to run
+		VT-6 ---> waiting to run
+		VT-7 ---> waiting to run
+		VT-8 ---> waiting to run
+		VT-9 ---> waiting to run
+		VT-10 --> waiting to run		
+
+Now VT-1 executes: Thread.sleep(5000);
+
+Conceptually, the virtual thread can unmount:
+
+		VT-1
+		 |
+		 v
+		WAITING
+
+Carrier-1 becomes available:
+
+Carrier-1 ---> FREE
+
+Scheduler executes VT-3:
+
+Carrier-1 ---> VT-3		
+
+-----------------------------------
+		
+100,000 Virtual Threads
+
+90,000 ---> Waiting for DB / API / I/O
+
+9,992  ---> Runnable / waiting for execution
+
+8      ---> Currently mounted and executing
+
+Others may be:
+
+	WAITING for Database
+	WAITING for REST API
+	WAITING for Kafka
+	WAITING for File I/O
+	WAITING for sleep/timer
+	RUNNABLE and waiting for scheduler execution	
+	
+	
+	
+	
+	
+------------------------------------
+	
+	
+	
+	
+	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+
+
+
+
+
+
+
+------------------------------------------------------
+
+Virtual Threads in Spring Boot
+
+Virtual Threads are a lightweight threading feature introduced as part of Project Loom in Java. They allow you to create millions of concurrent threads with very low memory overhead compared to traditional platform threads.
+
+Spring Boot 3.x works very well with Virtual Threads when running on Java 21+.
+
+Why Virtual Threads?
+Traditional Threads
+ExecutorService executor = Executors.newFixedThreadPool(200);
+
+Each thread maps to an OS thread.
+High memory consumption.
+Context switching is expensive.
+Difficult to scale for I/O-heavy applications.
+Virtual Threads
+ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+Managed by JVM.
+Very lightweight.
+Millions of virtual threads can be created.
+Ideal for:
+REST APIs
+Database calls
+File I/O
+External service calls
+Enabling Virtual Threads in Spring Boot
+Option 1: Spring Boot 3.2+ (Recommended)
+
+In application.properties:
+
+spring.threads.virtual.enabled=true
+
+
+Or:
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+
+
+That's it.
+
+Spring Boot automatically configures:
+
+Web request handling
+Async task execution
+Scheduled tasks
+
+to use virtual threads where applicable.
+
+Example REST Controller
+@RestController
+public class UserController {
+
+    @GetMapping("/users")
+    public String getUsers() throws InterruptedException {
+
+        Thread.sleep(2000);
+
+        return "Users fetched";
+    }
+}
+
+
+With virtual threads:
+
+Each request gets a virtual thread.
+Blocking operations like Thread.sleep(), database calls, and HTTP calls don't consume expensive OS threads.
+Custom Executor Using Virtual Threads
+@Configuration
+public class ExecutorConfig {
+
+    @Bean
+    ExecutorService executorService() {
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+}
+
+
+Usage:
+
+@Service
+public class UserService {
+
+    private final ExecutorService executor;
+
+    public UserService(ExecutorService executor) {
+        this.executor = executor;
+    }
+
+    public void process() {
+
+        executor.submit(() -> {
+            System.out.println(Thread.currentThread());
+        });
+    }
+}
+
+Async Methods with Virtual Threads
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean
+    public TaskExecutor taskExecutor() {
+        return new TaskExecutorAdapter(
+            Executors.newVirtualThreadPerTaskExecutor()
+        );
+    }
+}
+
+@Service
+public class NotificationService {
+
+    @Async
+    public void sendEmail() {
+        // runs on virtual thread
+    }
+}
+
+Checking Whether Thread is Virtual
+@GetMapping("/thread")
+public String threadInfo() {
+
+    Thread thread = Thread.currentThread();
+
+    return "Virtual: " + thread.isVirtual();
+}
+
+
+Output:
+
+Virtual: true
+
+When to Use Virtual Threads
+
+✅ Best for:
+
+REST APIs
+Microservices
+JDBC database calls
+External API calls
+File processing
+Blocking I/O workloads
+
+Example:
+
+userRepository.findAll(); // JDBC
+restTemplate.getForObject(...);
+Thread.sleep(...);
+
+
+These benefit significantly from virtual threads.
+
+When NOT to Use Virtual Threads
+
+❌ CPU-intensive workloads:
+
+for(int i = 0; i < 1_000_000; i++) {
+    performHeavyCalculation();
+}
+
+
+Virtual threads do not make CPU-bound work faster.
+
+For CPU-heavy processing, use:
+
+Executors.newFixedThreadPool(
+    Runtime.getRuntime().availableProcessors()
+);
+
+Virtual Threads vs Reactive Programming
+Feature	Virtual Threads	Spring WebFluxProgramming Style	Imperative	Reactive
+Learning Curve	Easy	Steep
+Debugging	Easy	Complex
+Blocking Calls	Supported	Not recommended
+Scalability	Excellent	Excellent
+
+Example:
+
+// Virtual Threads
+User user = repository.findById(id);
+
+// Reactive
+Mono<User> user = repository.findById(id);
+
+
+For many enterprise Spring Boot applications, virtual threads provide scalability benefits without requiring a move to reactive programming.
+
+Interview Question
+
+Q: What happens when a virtual thread blocks on I/O?
+
+Answer:
+ The JVM unmounts the virtual thread from the underlying carrier (platform) thread. The carrier thread is then free to execute other virtual threads. Once the I/O operation completes, the virtual thread is resumed, enabling high scalability with a small number of OS threads.
+
+Summary
+Available in Java 21 LTS.
+Enable in Spring Boot using:
+spring.threads.virtual.enabled=true
+
+Best for I/O-bound applications.
+Reduces thread management overhead.
+Simpler alternative to reactive programming for many use cases.
+Not a replacement for optimizing CPU-bound workloads.
+
+-------------------------------------------------------------------------------------------
+

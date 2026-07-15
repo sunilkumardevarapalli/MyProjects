@@ -1,0 +1,52 @@
+
+
+import React, { useEffect, useState } from 'react';
+
+const UsersTable = () => {
+
+    const [users, setUsers] = useState([]);
+
+    useEffect(() => {
+
+        fetch("http://localhost:8080/api/users")
+            .then(response => response.json())
+            .then(data => setUsers(data));
+
+    }, []);
+
+    return (
+
+        <table border="1">
+
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {
+                    users.map(user => (
+
+                        <tr key={user.id}>
+
+                            <td>{user.id}</td>
+
+                            <td>{user.name}</td>
+
+                            <td>{user.email}</td>
+
+                        </tr>
+                    ))
+                }
+
+            </tbody>
+
+        </table>
+    );
+};
+
+export default UsersTable;

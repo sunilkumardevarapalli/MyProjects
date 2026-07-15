@@ -1,0 +1,130 @@
+
+
+-------------------------------------------------------------------Idempotency----------------------	
+	
+Idempotency: Repeated same requests produce the same final result.
+
+	Idempotency is the property where executing the same operation multiple times has the same effect as executing it once. 
+
+	It is commonly used in REST APIs, distributed systems, and payment applications to prevent duplicate processing caused by retries.
+
+Ex 1: 
+
+	ser.setStatus("ACTIVE");  // Every time it is same until unless it is changed.
+	
+Non-Idempotent Operation:
+
+	account.deposit(1000);
+	
+	POST /orders:
+	
+		Call once:
+		
+			Order #1 created  order created
+		
+			call again : order #2 created, 
+			
+			here it is worng same order have with same opetation , order should not create.
+		
+		Due to a network timeout, the client retries:
+					
+			Request 1 -> ₹1000 transferred
+			Request 2 -> ₹1000 transferred again
+
+	Based on same request id more than once trancation should not proceed. Each request contains a unique key:
+	
+In APIs, idempotency is usually implemented using an Idempotency Key.
+The idea is:
+
+If the client retries the same request, the server recognizes it and returns the same result instead of processing it again.
+
+This is critical for:
+
+	Payments
+	Order creation
+	Ticket booking
+	Fund transfers
+	Any operation where duplicates are dangerous
+
+Solution: Idempotency Key
+	Client generates a unique key:
+
+	POST /payments
+	Idempotency-Key: 12345-ABCDE
+
+First Request:
+
+Server checks:
+
+	Key exists?
+	No
+
+Process payment.
+
+	Store:
+		
+		12345-ABCDE -> SUCCESS
+		PaymentId -> P1001
+
+	Return:
+		{
+		  "paymentId": "P1001",
+		  "status": "SUCCESS"
+		}
+		Retry Request:
+		
+			Client sends the same request again:
+			HTTPPOST /paymentsIdempotency-Key: 12345-ABCDE
+		
+		Server checks:
+			
+			Key exists?
+			Yes
+	Do not process payment again.
+	Return previous response:
+		{
+		  "paymentId": "P1001",
+		  "status": "SUCCESS"
+		}
+	Only one payment is created 
+	
+Spring Boot Example
+Controller
+
+@PostMapping("/payments")
+public ResponseEntity<?> makePayment(
+        @RequestHeader("Idempotency-Key") String key,
+        @RequestBody PaymentRequest request) {
+
+    return paymentService.processPayment(key, request);
+}
+
+Service:
+
+@Service
+public class PaymentService {
+
+    private final Map<String, String> cache = new ConcurrentHashMap<>();
+
+    public ResponseEntity<?> processPayment( String key, PaymentRequest request) {
+
+        if (cache.containsKey(key)) {
+
+            return ResponseEntity.ok( cache.get(key));
+        }
+
+        // Business Logic
+        String response =  "Payment Successful";
+
+        cache.put(key, response);
+
+        return ResponseEntity.ok(response);
+    }
+}
+
+Production systems typically use Redis or a database instead of a Map.
+
+Best Practices
+
+	1. Use UUID as Idempotency Key: UUID.randomUUID().toString(): a3d48a86-c584-4f31-a91e-5f1c727b5c73
+

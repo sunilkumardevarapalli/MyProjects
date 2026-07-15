@@ -1,0 +1,417 @@
+You’re asking for **full code + line-by-line explanation** of a **Saga + Outbox + CDC (Debezium) + Kafka + Idempotency** flow.
+
+I’ll give you a **minimal but production-style implementation** and explain **only the important lines (the ones that matter in interviews and real systems)**—not every getter/setter.
+
+---
+
+# 🔥 1. Order Service (Producer via Outbox)
+
+---
+
+## ✅ Entity: Order
+
+```java
+@Entity // tells JPA this is a DB table
+public class Order {
+
+    @Id
+    @GeneratedValue // auto-generate primary key
+    private Long id;
+
+    private String status; // CREATED, CANCELLED
+}
+```
+
+---
+
+## ✅ Entity: OutboxEvent
+
+```java
+@Entity
+@Table(name = "outbox_event") // maps to outbox table
+public class OutboxEvent {
+
+    @Id
+    private String id; // unique event id (UUID)
+
+    private String aggregateId;   // orderId
+    private String aggregateType; // ORDER, PAYMENT
+    private String eventType;     // ORDER_CREATED
+
+    @Lob // large object (JSON payload)
+    private String payload;
+
+    private LocalDateTime createdAt = LocalDateTime.now();
+}
+```
+
+---
+
+## ✅ Repository
+
+```java
+public interface OrderRepository extends JpaRepository<Order, Long> {}
+public interface OutboxRepository extends JpaRepository<OutboxEvent, String> {}
+```
+
+---
+
+## ✅ Service (CRITICAL PART)
+
+```java
+@Service
+public class OrderService {
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private OutboxRepository outboxRepository;
+
+    @Transactional // 🔥 ensures atomic DB transaction
+    public void createOrder() {
+
+        // 1️⃣ Create order object
+        Order order = new Order();
+        order.setStatus("CREATED");
+
+        // 2️⃣ Save order in DB
+        orderRepository.save(order);
+
+        // 3️⃣ Create outbox event
+        OutboxEvent event = new OutboxEvent();
+        event.setId(UUID.randomUUID().toString()); // unique event id
+        event.setAggregateId(order.getId().toString()); // link to order
+        event.setAggregateType("ORDER"); // used by Debezium routing
+        event.setEventType("ORDER_CREATED");
+
+        // 4️⃣ Convert payload to JSON
+        event.setPayload("{\"orderId\":\"" + order.getId() + "\"}");
+
+        // 5️⃣ Save event in SAME transaction
+        outboxRepository.save(event);
+    }
+}
+```
+
+---
+
+## 🔥 What happens internally
+
+```text
+DB Transaction:
+   INSERT order
+   INSERT outbox_event
+COMMIT
+```
+
+👉 After commit → DB writes to WAL → Debezium picks it
+
+---
+
+# 🔥 2. Debezium (CDC Layer)
+
+👉 You do NOT write Java code here
+
+---
+
+## ✅ Config (Important lines only)
+
+```json
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+```
+
+👉 Connects to PostgreSQL WAL
+
+---
+
+```json
+"table.include.list": "public.outbox_event",
+```
+
+👉 Only track outbox table
+
+---
+
+```json
+"transforms": "outbox",
+"transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+```
+
+👉 Converts DB row → clean event
+
+---
+
+```json
+"transforms.outbox.route.by.field": "aggregate_type",
+```
+
+👉 ORDER → topic name
+
+---
+
+```json
+"transforms.outbox.route.topic.replacement": "${routedByValue}.events"
+```
+
+👉 Final topic:
+
+```
+ORDER.events
+```
+
+---
+
+# 🔥 3. Payment Service (Consumer + Idempotency)
+
+---
+
+## ✅ Idempotency Entity
+
+```java
+@Entity
+public class ProcessedEvent {
+
+    @Id
+    private String eventId; // unique event id
+
+    private LocalDateTime processedAt = LocalDateTime.now();
+}
+```
+
+---
+
+## ✅ Repository
+
+```java
+public interface ProcessedEventRepository
+        extends JpaRepository<ProcessedEvent, String> {}
+```
+
+---
+
+## ✅ Kafka Consumer
+
+```java
+@Component
+public class OrderConsumer {
+
+    @Autowired
+    private PaymentService paymentService;
+
+    @KafkaListener(topics = "ORDER.events", groupId = "payment-group")
+    public void consume(String message) {
+
+        // 1️⃣ Convert JSON → Object
+        OrderEvent event = parse(message);
+
+        // 2️⃣ Call service
+        paymentService.process(event);
+    }
+}
+```
+
+---
+
+## ✅ Payment Service (CRITICAL LOGIC)
+
+```java
+@Service
+public class PaymentService {
+
+    @Autowired
+    private ProcessedEventRepository processedRepo;
+
+    @Autowired
+    private OutboxRepository outboxRepo;
+
+    @Transactional // 🔥 ensures idempotency + business logic atomic
+    public void process(OrderEvent event) {
+
+        // 1️⃣ IDEMPOTENCY CHECK
+        if (processedRepo.existsById(event.getEventId())) {
+            return; // duplicate → ignore
+        }
+
+        try {
+            // 2️⃣ BUSINESS LOGIC
+            System.out.println("Payment processed for order: " + event.getOrderId());
+
+            // 3️⃣ SAVE SUCCESS EVENT
+            OutboxEvent successEvent = new OutboxEvent();
+            successEvent.setId(UUID.randomUUID().toString());
+            successEvent.setAggregateId(event.getOrderId());
+            successEvent.setAggregateType("PAYMENT");
+            successEvent.setEventType("PAYMENT_SUCCESS");
+            successEvent.setPayload(toJson(event));
+
+            outboxRepo.save(successEvent);
+
+        } catch (Exception ex) {
+
+            // 4️⃣ SAVE FAILURE EVENT
+            OutboxEvent failEvent = new OutboxEvent();
+            failEvent.setId(UUID.randomUUID().toString());
+            failEvent.setAggregateType("PAYMENT");
+            failEvent.setEventType("PAYMENT_FAILED");
+
+            outboxRepo.save(failEvent);
+
+            throw ex; // 🔥 triggers Kafka retry
+        }
+
+        // 5️⃣ MARK AS PROCESSED
+        processedRepo.save(new ProcessedEvent(event.getEventId()));
+    }
+}
+```
+
+---
+
+# 🔥 4. Inventory Service
+
+---
+
+## ✅ Consumer
+
+```java
+@KafkaListener(topics = "PAYMENT.events")
+public void consume(String message) {
+
+    PaymentEvent event = parse(message);
+
+    if ("PAYMENT_SUCCESS".equals(event.getEventType())) {
+        inventoryService.reserve(event);
+    }
+}
+```
+
+---
+
+## ✅ Service
+
+```java
+@Transactional
+public void reserve(PaymentEvent event) {
+
+    if (processedRepo.existsById(event.getEventId())) return;
+
+    // business logic
+    System.out.println("Stock reserved");
+
+    // publish next event
+    outboxRepo.save(new OutboxEvent(
+        UUID.randomUUID().toString(),
+        event.getOrderId(),
+        "INVENTORY",
+        "STOCK_RESERVED",
+        toJson(event)
+    ));
+
+    processedRepo.save(new ProcessedEvent(event.getEventId()));
+}
+```
+
+---
+
+# 🔥 5. Kafka Retry Configuration
+
+```java
+@Bean
+public DefaultErrorHandler errorHandler(KafkaTemplate<Object, Object> template) {
+
+    return new DefaultErrorHandler(
+        new DeadLetterPublishingRecoverer(template), // DLQ
+        new FixedBackOff(2000L, 3) // retry 3 times
+    );
+}
+```
+
+---
+
+# 🔥 6. FULL FLOW (Line-by-Line Thinking)
+
+```text
+1. OrderService.createOrder()
+   → saves order + outbox (TX commit)
+
+2. DB writes WAL
+
+3. Debezium reads WAL
+   → converts row → Kafka event
+
+4. Kafka publishes ORDER_CREATED
+
+5. PaymentService.consume()
+   → checks idempotency
+   → processes payment
+   → writes PAYMENT_SUCCESS outbox
+
+6. Debezium again
+   → publishes PAYMENT_SUCCESS
+
+7. Inventory consumes
+   → reserves stock
+```
+
+---
+
+# 🔥 7. MOST IMPORTANT LINES (Must Remember)
+
+---
+
+### ✅ Atomic write
+
+```java
+@Transactional
+```
+
+---
+
+### ✅ Outbox save
+
+```java
+outboxRepository.save(event);
+```
+
+---
+
+### ✅ Idempotency
+
+```java
+if (processedRepo.existsById(eventId)) return;
+```
+
+---
+
+### ✅ Retry trigger
+
+```java
+throw ex;
+```
+
+---
+
+# 🧠 Final Interview Answer
+
+> “Each service writes business data and outbox events in a single transaction. Debezium captures these changes from database logs and publishes them to Kafka. Consumers process events with idempotency checks and retries, ensuring reliable Saga execution without data loss.”
+
+---
+
+# ⚡ One-line Memory
+
+👉 **Write → Commit → WAL → Debezium → Kafka → Idempotent Consumer**
+
+---
+
+# 🚀 If you want next level
+
+I can give:
+
+* 🔥 Full **GitHub-ready project (multi-module)**
+* 🔥 **Docker Compose setup (Kafka + Debezium + Postgres)**
+* 🔥 Add **compensation (ORDER_CANCELLED)**
+* 🔥 Show **real bug: duplicate payment issue & fix**
+
+Just tell 👍

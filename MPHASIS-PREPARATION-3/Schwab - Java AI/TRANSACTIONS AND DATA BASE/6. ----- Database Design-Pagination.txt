@@ -1,0 +1,345 @@
+
+Database Design – Pagination
+
+	Pagination is the technique of retrieving large datasets in smaller chunks (pages) instead of loading all records at once.
+	
+Summary:
+
+	1. Offset Pagination
+		✅ Simple
+		❌ Slow for large datasets
+
+	2.Keyset Pagination
+		✅ Fast
+		✅ Scalable
+		❌ No random page jump
+
+	3.Cursor Pagination
+		✅ Best for APIs and infinite scrolling
+		✅ Consistent results
+		✅ High performance
+
+Benefits:
+
+	Improves application performance
+	Reduces database load
+	Decreases network traffic
+	Provides better user experience
+	
+1. Offset-Based Pagination
+
+	Most commonly used approach.
+	
+	Page 1: SELECT * FROM employees ORDER BY id LIMIT 10 OFFSET 0;
+	
+	Page 2: SELECT * FROM employees ORDER BY id LIMIT 10 OFFSET 10;
+	
+	Disadvantages
+
+		For large datasets:
+			LIMIT 10 OFFSET 100000
+		Show more lines
+
+		Database still scans/skips 100000 rows before returning 10 rows.
+
+		Performance degrades significantly.
+
+2. Keyset (Seek) Pagination
+
+	Recommended for large tables.
+
+	Instead of OFFSET, use the last retrieved record.
+	
+	First Page: SELECT * FROM employees ORDER BY id LIMIT 10;
+	
+		Last record id: 10
+		
+	Next Page: SELECT * FROM employees WHERE id > 10 ORDER BY id LIMIT 10;
+	
+	Next page: SELECT * FROM employees WHERE id > 20 ORDER BY id LIMIT 10;
+	
+	Advantages
+		Very fast
+		Uses index efficiently
+		Scales to millions of rows
+		
+	Disadvantages
+		Cannot directly jump to page 100
+		Requires ordering column
+		
+3. Cursor-Based Pagination
+
+	Widely used in APIs (Facebook, Twitter, GraphQL).	
+
+		SELECT * FROM employees WHERE id > 100  ORDER BY id LIMIT 10;
+		
+		{
+		  "data": [...],
+		  "nextCursor": 110
+		}
+	
+	Advantages
+		Consistent results
+		Fast for large datasets
+		Suitable for scrolling feeds
+		
+-----------------------------------------------------------------------------------------------
+
+Database Design – Pagination
+
+Pagination is the technique of retrieving large datasets in smaller chunks (pages) instead of loading all records at once.
+
+Benefits:
+
+Improves application performance
+Reduces database load
+Decreases network traffic
+Provides better user experience
+1. Offset-Based Pagination
+
+Most commonly used approach.
+
+SQL
+SELECT *
+FROM employees
+ORDER BY id
+LIMIT 10 OFFSET 0;
+
+Page 2
+SELECT *
+FROM employees
+ORDER BY id
+LIMIT 10 OFFSET 10;
+
+How it works
+Page 1 -> Rows 1-10
+Page 2 -> Rows 11-20
+Page 3 -> Rows 21-30
+
+Advantages
+Easy to implement
+Supported by most databases
+Disadvantages
+
+For large datasets:
+
+LIMIT 10 OFFSET 100000
+
+
+Database still scans/skips 100000 rows before returning 10 rows.
+
+Performance degrades significantly.
+
+2. Keyset (Seek) Pagination
+
+Recommended for large tables.
+
+Instead of OFFSET, use the last retrieved record.
+
+First Page
+SELECT *
+FROM employees
+ORDER BY id
+LIMIT 10;
+
+
+Last record id:
+
+10
+
+Next Page
+SELECT *
+FROM employees
+WHERE id > 10
+ORDER BY id
+LIMIT 10;
+
+Next Page
+SELECT *
+FROM employees
+WHERE id > 20
+ORDER BY id
+LIMIT 10;
+
+Advantages
+Very fast
+Uses index efficiently
+Scales to millions of rows
+Disadvantages
+Cannot directly jump to page 100
+Requires ordering column
+3. Cursor-Based Pagination
+
+Widely used in APIs (Facebook, Twitter, GraphQL).
+
+Request
+GET /employees?cursor=100
+
+Query
+SELECT *
+FROM employees
+WHERE id > 100
+ORDER BY id
+LIMIT 10;
+
+
+Response:
+
+{
+  "data": [...],
+  "nextCursor": 110
+}
+
+Advantages
+Consistent results
+Fast for large datasets
+Suitable for scrolling feeds
+Why OFFSET Pagination Can Be Problematic
+
+Suppose:
+
+Page Size = 10
+Current Page = 2
+
+
+Query:
+
+LIMIT 10 OFFSET 10
+
+
+Before fetching page 2, a new row is inserted.
+
+Result:
+
+Duplicate records
+OR
+Missing records
+
+
+Offset pagination is vulnerable to data changes during navigation.
+
+Database Design Considerations
+Always Use ORDER BY
+
+Bad:
+
+SELECT * FROM employees
+LIMIT 10;
+
+
+Good:
+
+SELECT *
+FROM employees
+ORDER BY id
+LIMIT 10;
+
+
+Without ordering, pagination results are unpredictable.
+
+Index the Sorting Column
+CREATE INDEX idx_employee_id
+ON employees(id);
+
+
+For:
+
+SELECT *
+FROM employees
+WHERE id > ?
+ORDER BY id
+LIMIT 10;
+
+
+the index significantly improves performance.
+
+Composite Index Example
+
+Query:
+
+SELECT *
+FROM orders
+WHERE status='ACTIVE'
+ORDER BY created_date
+LIMIT 20;
+
+
+Recommended index:
+
+CREATE INDEX idx_status_createddate
+ON orders(status, created_date);
+
+Pagination in Spring Data JPA
+Repository
+public interface EmployeeRepository
+        extends JpaRepository<Employee, Long> {
+}
+
+Service
+Page<Employee> page =
+    repository.findAll(
+        PageRequest.of(0, 10));
+
+Result
+page.getContent();
+page.getTotalElements();
+page.getTotalPages();
+page.hasNext();
+
+
+Generated SQL:
+
+SELECT ...
+LIMIT 10 OFFSET 0
+
+Interview Question
+Q: Which pagination strategy is best for large tables?
+
+Answer:
+
+For small to medium datasets, Offset Pagination (LIMIT/OFFSET) is acceptable.
+
+For large datasets and high-performance applications, Keyset/Seek Pagination (Cursor-Based Pagination) is preferred because it leverages indexes efficiently and avoids scanning/skipping large numbers of rows.
+
+Summary
+Offset Pagination
+✅ Simple
+❌ Slow for large datasets
+
+Keyset Pagination
+✅ Fast
+✅ Scalable
+❌ No random page jump
+
+Cursor Pagination
+✅ Best for APIs and infinite scrolling
+✅ Consistent results
+✅ High performance
+
+
+Interview Tip: If asked, "How would you paginate a table with millions of records?", answer Keyset/Cursor Pagination instead of OFFSET-based pagination.		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		

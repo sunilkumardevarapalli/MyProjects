@@ -1,0 +1,218 @@
+In Java multithreading, **fairness** is mainly related to how locks allocate access to waiting threads.
+
+## Fair Lock
+
+A fair lock gives access to the thread that has been waiting the longest (**FIFO - First In First Out**).
+
+```java
+ReentrantLock lock = new ReentrantLock(true);
+```
+
+Here:
+
+```java
+true = Fair Lock
+```
+
+### Example
+
+Threads arrive in this order:
+
+```text
+T1
+T2
+T3
+```
+
+Lock execution:
+
+```text
+T1 acquires lock
+T1 releases lock
+
+T2 acquires lock
+T2 releases lock
+
+T3 acquires lock
+```
+
+No thread is skipped.
+
+### Advantages
+
+* No thread starvation
+* Predictable execution order
+* Suitable when fairness is important
+
+### Disadvantages
+
+* Lower performance
+* More context switching
+* Reduced throughput
+
+***
+
+## Unfair Lock (Default)
+
+```java
+ReentrantLock lock = new ReentrantLock();
+```
+
+or
+
+```java
+ReentrantLock lock = new ReentrantLock(false);
+```
+
+Here:
+
+```java
+false = Unfair Lock
+```
+
+A thread can "jump the queue" and acquire the lock even if other threads have been waiting.
+
+### Example
+
+Waiting queue:
+
+```text
+T1
+T2
+T3
+```
+
+Suppose T4 comes exactly when lock is released:
+
+```text
+Release Lock
+      |
+      v
+T4 grabs lock
+```
+
+Execution:
+
+```text
+T1 acquires lock
+T1 releases lock
+
+T4 acquires lock
+T4 releases lock
+
+T2 acquires lock
+T3 acquires lock
+```
+
+T4 bypassed T2 and T3.
+
+***
+
+## Starvation
+
+With unfair locks:
+
+```text
+T1 waiting
+T2 waiting
+T3 waiting
+...
+New threads keep arriving
+```
+
+A waiting thread might never get CPU time.
+
+This is called:
+
+```text
+Starvation
+```
+
+Fair locks prevent this.
+
+***
+
+## Sample Code
+
+### Fair Lock
+
+```java
+ReentrantLock lock = new ReentrantLock(true);
+
+Runnable task = () -> {
+    lock.lock();
+    try {
+        System.out.println(Thread.currentThread().getName()
+                + " acquired lock");
+    } finally {
+        lock.unlock();
+    }
+};
+```
+
+Output usually follows arrival order:
+
+```text
+Thread-1 acquired lock
+Thread-2 acquired lock
+Thread-3 acquired lock
+```
+
+***
+
+### Unfair Lock
+
+```java
+ReentrantLock lock = new ReentrantLock(false);
+```
+
+Output may be:
+
+```text
+Thread-1 acquired lock
+Thread-3 acquired lock
+Thread-2 acquired lock
+```
+
+Order is not guaranteed.
+
+***
+
+## Real-World Analogy
+
+### Fair
+
+Bank token system:
+
+```text
+Token 1
+Token 2
+Token 3
+```
+
+Customers are served in order.
+
+***
+
+### Unfair
+
+Crowded ticket counter:
+
+```text
+Person 1 waiting
+Person 2 waiting
+
+New person pushes ahead
+```
+
+Someone can get served before others.
+
+***
+
+## Interview Answer
+
+**What is the difference between fair and unfair locks in Java?**
+
+* **Fair Lock (`new ReentrantLock(true)`)** grants lock access to the longest-waiting thread, preventing starvation but reducing performance.
+* **Unfair Lock (`new ReentrantLock(false)`)** allows threads to acquire the lock immediately when available, improving throughput but potentially causing starvation.
+* By default, `ReentrantLock` is **unfair**.

@@ -1,0 +1,2070 @@
+
+
+CompletableFuture:
+********************************************************************************************************************
+
+	Defination:
+	-----------
+
+		CompletableFuture is a feature introduced in Java 8 that allows us to write 
+
+		Asynchronous, 
+		Chaining,
+		Combine multiple tasks,
+		
+		Blocking, 
+		Callbacks, 
+		Exeption Handling without blocking the main thread,
+		
+		CompletableFuture internal working (ForkJoinPool)
+		
+A common interview question is: "When to use thenCompose vs thenCombine?"
+
+Use thenCompose when the second call depends on the first call's result.
+Use thenCombine when both calls are independent and can run in parallel.
+
+
+thenCombine():  Used when two independent futures run in parallel and you want to combine their results.
+
+thenCompose(): Used when the second async call depends on the first result.
+
+				Suppose payment can only be fetched after getting the order.
+				
+exceptionally(): Used for fallback recovery.
+
+handle(): Used when you want both:
+
+			Success result
+			Exception result
+			
+whenComplete():Used for auditing/logging.
+
+				It does not change the result.
+				
+thenApply()		Transform result (A -> B)
+
+thenCompose()	Chain dependent async calls
+
+thenCombine()	Merge independent futures
+
+allOf()			Wait for all futures
+
+exceptionally()	Fallback on error
+
+handle()		Process success or error
+
+whenComplete()	Logging/Auditing after completion
+
+A common interview question is: "When to use thenCompose vs thenCombine?"
+
+	Use thenCompose when the second call depends on the first call's result.
+	Use thenCombine when both calls are independent and can run in parallel.		
+
+Methods in CompletableFuture.
+----------------------------
+
+	supplyAsync() --> return value	
+	thenApply(),	
+	thenCombine(),
+	thenAccept(),	
+	
+	allOf(),
+	runAsync(),	no return value
+
+	exceptionally()
+
+		thenApply() → Like map() (transforms results)
+
+		thenCompose() → Like flatMap() (chains another future)
+
+		thenAccept --> consumes theresults
+		
+		
+	Why do we need it? Future
+	-------------------------
+	
+		Before Java 8, we used Future.
+
+			Problem with Future:
+
+				Cannot chain tasks
+				No easy exception handling
+				Blocking using .get()
+
+			CompletableFuture solves all these problems.
+			
+			Important Methods of Future
+			Method			Purpose
+			
+			get()			Wait and get result (blocking)
+			cancel()		Cancel task
+			isDone()		Check if completed
+			isCancelled()	Check if cancelled
+						
+			Major Problems with Future 
+
+				❌ get() is blocking
+
+				❌ Cannot chain tasks
+
+				❌ No easy exception handling
+
+				❌ Cannot combine multiple futures easily
+
+				❌ No callback support
+			
+	Note: If we call get() or join() on CompletableFuture, the current thread becomes blocking until the result is available.
+
+		get: checked exception
+		join: unchecked exception
+	
+When NOT to Use CompletableFuture?
+..................................
+
+	When using full reactive frameworks like Spring WebFlux
+
+	When using Project Reactor (Mono, Flux)
+
+	For simple synchronous logic
+
+
+
+supplyAsync:
+------------------------------------------------------------------
+
+
+	
+Difference: thenApply vs thenCompose
+*************************************
+
+	
+
+public CompletableFuture<OrderResponse> getOrderDetails(Long id) {
+
+    CompletableFuture<Order> orderFuture =
+            CompletableFuture.supplyAsync(() -> orderRepo.findById(id));
+
+    CompletableFuture<Payment> paymentFuture =
+            CompletableFuture.supplyAsync(() -> paymentService.getPayment(id));
+
+    CompletableFuture<Shipment> shipmentFuture =
+            CompletableFuture.supplyAsync(() -> shipmentService.getShipment(id));
+
+    return CompletableFuture.allOf(
+                    orderFuture,
+                    paymentFuture,
+                    shipmentFuture)
+            .thenApply(v -> new OrderResponse(
+                    orderFuture.join(),
+                    paymentFuture.join(),
+                    shipmentFuture.join()));
+}
+
+i want to apply this synario for thenCombine, thenCompose, exceptionally, handle, when complex
+
+--------------------------------------------------
+
+public CompletableFuture<OrderResponse> getOrderDetails(Long id) {
+
+    CompletableFuture<Order> orderFuture =
+            CompletableFuture.supplyAsync(
+                    () -> orderRepo.findById(id));
+
+    CompletableFuture<Payment> paymentFuture =
+            CompletableFuture.supplyAsync(
+                    () -> paymentService.getPayment(id))
+                    .exceptionally(ex ->
+                            new Payment(0L, "FAILED"));
+
+    CompletableFuture<Shipment> shipmentFuture =
+            CompletableFuture.supplyAsync(
+                    () -> shipmentService.getShipment(id));
+
+    return orderFuture
+            .thenCombine(paymentFuture,
+                    (order, payment) ->
+                            new OrderPaymentResponse(order, payment))
+
+            .thenCombine(shipmentFuture,
+                    (op, shipment) ->
+                            new OrderResponse(
+                                    op.getOrder(),
+                                    op.getPayment(),
+                                    shipment))
+
+            .whenComplete((result, ex) -> {
+
+                if (ex == null) {
+                    System.out.println(
+                            "Order processed successfully");
+                } else {
+                    System.out.println(
+                            "Order processing failed");
+                }
+            });
+}
+
+              Request
+                 |
+    --------------------------------
+    |              |              |
+ Order Future  Payment Future  Shipment Future
+    |              |              |
+    |         exceptionally()     |
+    |              |              |
+    ------- thenCombine -----------
+                 |
+      Order + Payment
+                 |
+         thenCombine
+                 |
+      + Shipment Data
+                 |
+          OrderResponse
+                 |
+        whenComplete
+                 |
+              Return
+			  
+New Requirement
+Plain Text
+1
+1. Get Order
+2
+2. Using Order ID fetch Payment
+3
+3. Using Order ID fetch Shipment
+4
+4. Build OrderResponse
+Show more lines
+
+Here, Payment and Shipment depend on Order being fetched first.
+
+public CompletableFuture<OrderResponse> getOrderDetails(Long id) {
+
+    return CompletableFuture
+            .supplyAsync(() -> orderRepo.findById(id))
+
+            .thenCompose(order ->
+
+                    CompletableFuture
+                            .supplyAsync(() ->
+                                    paymentService.getPayment(
+                                            order.getOrderId()))
+
+                            .exceptionally(ex ->
+                                    new Payment(0L, "FAILED"))
+
+                            .thenCompose(payment ->
+
+                                    CompletableFuture
+                                            .supplyAsync(() ->
+                                                    shipmentService.getShipment(
+                                                            order.getOrderId()))
+
+                                            .thenApply(shipment ->
+
+                                                    new OrderResponse(
+                                                            order,
+                                                            payment,
+                                                            shipment
+                                                    )
+                                            )
+                            )
+            )
+
+            .whenComplete((result, ex) -> {
+
+                if (ex == null) {
+                    System.out.println("Order processed successfully");
+                } else {
+                    System.out.println("Order processing failed");
+                }
+            });
+}
+
+Correct.
+
+When you do this:
+
+ExecutorService executor = Executors.newFixedThreadPool(50);
+
+CompletableFuture.supplyAsync(() -> process(), executor);
+
+
+CompletableFuture does not use ForkJoinPool. It uses the ExecutorService you provided.
+
+Rule
+Without Executor
+CompletableFuture.supplyAsync(() -> process());
+
+
+Uses:
+
+ForkJoinPool.commonPool()
+
+With Executor
+CompletableFuture.supplyAsync(() -> process(), executor);
+
+
+Uses:
+
+executor
+
+
+and completely bypasses the default ForkJoinPool.commonPool().
+
+Example
+ExecutorService executor =
+        Executors.newFixedThreadPool(20);
+
+CompletableFuture<String> future =
+        CompletableFuture.supplyAsync(
+            () -> {
+                System.out.println(Thread.currentThread().getName());
+                return "Done";
+            },
+            executor
+        );
+
+
+Output:
+
+pool-1-thread-1
+
+
+Not:
+
+ForkJoinPool.commonPool-worker-1
+
+Why provide a custom Executor?
+
+For production systems, it's usually preferred because:
+
+You control thread count.
+You can isolate workloads.
+You avoid exhausting the common pool.
+You can configure queue size and rejection policy.
+
+Example:
+
+ThreadPoolExecutor executor =
+    new ThreadPoolExecutor(
+        50,       // core threads
+        100,      // max threads
+        60, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<>(1000)
+    );
+
+Design Review Answer
+
+"By default, CompletableFuture uses ForkJoinPool.commonPool(). However, when an ExecutorService is explicitly supplied, all async tasks are executed by that ExecutorService instead. In our implementation, we use a dedicated ExecutorService to control concurrency and prevent overloading the shared ForkJoinPool."
+
+That's the answer most architects/reviewers expect.		
+
+
+ExecutorService executor = Executors.newFixedThreadPool(50);
+
+CompletableFuture.supplyAsync(() -> process(), executor);
+
+ExecutorService executor =
+        Executors.newFixedThreadPool(20);
+
+CompletableFuture<String> future =
+        CompletableFuture.supplyAsync(
+            () -> {
+                System.out.println(Thread.currentThread().getName());
+                return "Done";
+            },
+            executor
+        );	  
+			  
+----------------------------------------------------------------------
+
+Correct.
+
+When you do this:
+
+ExecutorService executor = Executors.newFixedThreadPool(50);
+
+CompletableFuture.supplyAsync(() -> process(), executor);
+
+
+CompletableFuture does not use ForkJoinPool. It uses the ExecutorService you provided.
+
+Rule
+Without Executor
+CompletableFuture.supplyAsync(() -> process());
+
+
+Uses:
+
+ForkJoinPool.commonPool()
+
+With Executor
+CompletableFuture.supplyAsync(() -> process(), executor);
+
+
+Uses:
+
+executor
+
+
+and completely bypasses the default ForkJoinPool.commonPool().
+
+Example
+ExecutorService executor =
+        Executors.newFixedThreadPool(20);
+
+CompletableFuture<String> future =
+        CompletableFuture.supplyAsync(
+            () -> {
+                System.out.println(Thread.currentThread().getName());
+                return "Done";
+            },
+            executor
+        );
+
+
+Output:
+
+pool-1-thread-1
+
+
+Not:
+
+ForkJoinPool.commonPool-worker-1
+
+Why provide a custom Executor?
+
+For production systems, it's usually preferred because:
+
+You control thread count.
+You can isolate workloads.
+You avoid exhausting the common pool.
+You can configure queue size and rejection policy.
+
+Example:
+
+ThreadPoolExecutor executor =
+    new ThreadPoolExecutor(
+        50,       // core threads
+        100,      // max threads
+        60, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<>(1000)
+    );
+
+Design Review Answer
+
+"By default, CompletableFuture uses ForkJoinPool.commonPool(). However, when an ExecutorService is explicitly supplied, all async tasks are executed by that ExecutorService instead. In our implementation, we use a dedicated ExecutorService to control concurrency and prevent overloading the shared ForkJoinPool."
+
+That's the answer most architects/reviewers expect.\
+
+
+
+
+
+
+
+
+
+
+
+If you're explaining a Completable Feature (for example, a feature that returns a CompletableFuture or supports asynchronous completion), the key point is:
+
+It is usually an internal async implementation detail, but its purpose may be external as well.
+
+You can explain it like this:
+
+"The feature is implemented asynchronously using a completable pattern, which allows the caller to continue execution without blocking. Internally, it improves scalability and responsiveness by processing work in the background thread/executor. Externally, it provides a non-blocking API and allows consumers to react when the operation completes."
+
+When to focus on Internal Async
+
+Discuss:
+
+Non-blocking execution
+Better resource utilization
+Parallel processing
+Reduced response waiting time
+Thread/executor management
+
+Example:
+
+"We use CompletableFuture internally so long-running operations do not block the request thread."
+
+When to focus on External Purpose
+
+Discuss:
+
+What benefit users/client applications get
+Faster UI responsiveness
+Callbacks/chaining
+Integration with other async workflows
+
+Example:
+
+"Consumers can continue their workflow and handle the result once the operation completes instead of waiting synchronously."
+
+Simple Interview/Design Review Answer
+
+"It serves both purposes. Internally, it enables asynchronous processing and efficient resource usage. Externally, it exposes a non-blocking mechanism that improves responsiveness and allows callers to compose dependent operations."
+
+This is usually the safest and most complete explanation in design reviews or architecture discussions.
+
+------------------------------------------------------
+
+thenCompose() is used when the next async call depends on the previous result.
+
+Your current code uses thenCombine() because:
+
+Order
+Payment
+Shipment
+
+
+are independent and can run in parallel.
+
+To demonstrate thenCompose(), let's change the business flow:
+
+New Requirement
+1. Get Order
+2. Using Order ID fetch Payment
+3. Using Order ID fetch Shipment
+4. Build OrderResponse
+
+
+Here, Payment and Shipment depend on Order being fetched first.
+
+Using thenCompose()
+public CompletableFuture<OrderResponse> getOrderDetails(Long id) {
+
+    return CompletableFuture
+            .supplyAsync(() -> orderRepo.findById(id))
+
+            .thenCompose(order ->
+
+                    CompletableFuture
+                            .supplyAsync(() ->
+                                    paymentService.getPayment(
+                                            order.getOrderId()))
+
+                            .exceptionally(ex ->
+                                    new Payment(0L, "FAILED"))
+
+                            .thenCompose(payment ->
+
+                                    CompletableFuture
+                                            .supplyAsync(() ->
+                                                    shipmentService.getShipment(
+                                                            order.getOrderId()))
+
+                                            .thenApply(shipment ->
+
+                                                    new OrderResponse(
+                                                            order,
+                                                            payment,
+                                                            shipment
+                                                    )
+                                            )
+                            )
+            )
+
+            .whenComplete((result, ex) -> {
+
+                if (ex == null) {
+                    System.out.println("Order processed successfully");
+                } else {
+                    System.out.println("Order processing failed");
+                }
+            });
+}
+
+Step-by-Step Execution
+
+Assume:
+
+id = 101
+
+Step 1
+CompletableFuture.supplyAsync(
+        () -> orderRepo.findById(id))
+
+
+Thread executes:
+
+Order order = orderRepo.findById(101);
+
+
+Result:
+
+Order(
+   orderId=101,
+   product="Laptop"
+)
+
+Step 2
+
+Order completes.
+
+Now:
+
+.thenCompose(order -> ...)
+
+
+executes.
+
+The lambda receives:
+
+order
+
+order.getOrderId()
+
+
+returns:
+
+101
+
+Step 3
+
+Payment call starts.
+
+CompletableFuture
+        .supplyAsync(() ->
+                paymentService.getPayment(
+                        order.getOrderId()))
+
+
+Runs:
+
+paymentService.getPayment(101)
+
+
+Result:
+
+Payment(
+    paymentId=5001,
+    status="SUCCESS"
+)
+
+Step 4
+
+Suppose payment system fails.
+
+throw new RuntimeException();
+
+
+then:
+
+.exceptionally(ex ->
+       new Payment(0L,"FAILED"))
+
+
+returns:
+
+Payment(
+   0L,
+   "FAILED"
+)
+
+
+instead of terminating the entire flow.
+
+Step 5
+
+Payment completes.
+
+Now second:
+
+.thenCompose(payment -> ...)
+
+
+executes.
+
+Lambda receives:
+
+payment
+
+Payment(
+   5001,
+   "SUCCESS"
+)
+
+Step 6
+
+Shipment call starts.
+
+CompletableFuture
+        .supplyAsync(() ->
+                shipmentService.getShipment(
+                        order.getOrderId()))
+
+
+Runs:
+
+shipmentService.getShipment(101)
+
+
+Result:
+
+Shipment(
+    7001,
+    "SHIPPED"
+)
+
+Step 7
+
+Now:
+
+.thenApply(shipment -> ...)
+
+
+receives:
+
+shipment
+
+
+Creates:
+
+new OrderResponse(
+        order,
+        payment,
+        shipment
+)
+
+
+Result:
+
+OrderResponse
+
+
+containing:
+
+Order(101,"Laptop")
+
+Payment(5001,"SUCCESS")
+
+Shipment(7001,"SHIPPED")
+
+Step 8
+
+whenComplete() executes.
+
+Success:
+
+result != null
+
+ex == null
+
+
+Output:
+
+Order processed successfully
+
+Flow Diagram
+Get Order
+    |
+    V
+Order Object
+    |
+thenCompose
+    |
+    V
+Get Payment
+    |
+    V
+Payment Object
+    |
+thenCompose
+    |
+    V
+Get Shipment
+    |
+    V
+Shipment Object
+    |
+thenApply
+    |
+    V
+OrderResponse
+    |
+whenComplete
+    |
+Return Response
+
+Timeline
+thenCompose Version
+0 sec  -> Order starts
+
+2 sec  -> Order completed
+
+2 sec  -> Payment starts
+
+5 sec  -> Payment completed
+
+5 sec  -> Shipment starts
+
+9 sec  -> Shipment completed
+
+9 sec  -> OrderResponse created
+
+
+Total:
+
+9 seconds
+
+
+because everything runs sequentially.
+
+thenCombine Version
+0 sec -> Order starts
+0 sec -> Payment starts
+0 sec -> Shipment starts
+
+2 sec -> Order completed
+
+3 sec -> Payment completed
+
+4 sec -> Shipment completed
+
+4 sec -> Response created
+
+
+Total:
+
+4 seconds
+
+
+because everything runs in parallel.
+
+Key Difference
+thenCompose
+
+Used for dependent async operations.
+
+Order
+   ↓
+Payment
+   ↓
+Shipment
+
+
+One waits for another.
+
+Example:
+
+Get Order
+   ↓
+Order contains customerId
+   ↓
+Get Customer
+   ↓
+Customer contains accountId
+   ↓
+Get Payment
+
+thenCombine
+
+Used for independent async operations.
+
+Order
+Payment
+Shipment
+
+
+All run at the same time and later merge results.
+
+Interview rule:
+
+thenCompose() = Async chaining (A → B → C)
+thenCombine() = Async parallel execution (A + B → Result)
+
+-----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+Let's walk through it exactly as Java executes it, assuming:
+
+id = 101
+
+
+and all three services take:
+
+Order Service    -> 2 sec
+Payment Service  -> 3 sec
+Shipment Service -> 4 sec
+
+Step 1: Create Order Future
+CompletableFuture<Order> orderFuture =
+        CompletableFuture.supplyAsync(
+                () -> orderRepo.findById(id));
+
+
+A task is submitted to a thread pool.
+
+Thread-1 starts
+
+Thread-1:
+Order order = orderRepo.findById(101);
+
+
+Result after 2 sec:
+
+Order(101, "Laptop")
+
+
+Stored inside:
+
+orderFuture
+
+Step 2: Create Payment Future
+CompletableFuture<Payment> paymentFuture =
+        CompletableFuture.supplyAsync(
+                () -> paymentService.getPayment(id))
+
+
+Another thread starts.
+
+Thread-2 starts
+
+paymentService.getPayment(101);
+
+
+Suppose it succeeds:
+
+Payment(5001, "SUCCESS")
+
+
+Stored inside:
+
+paymentFuture
+
+Step 3: Exception Handling for Payment
+.exceptionally(ex ->
+        new Payment(0L, "FAILED"));
+
+
+This executes only if:
+
+paymentService.getPayment(id)
+
+
+throws an exception.
+
+Example:
+
+throw new RuntimeException("Payment API down");
+
+
+Without exceptionally():
+
+paymentFuture = FAILED
+
+
+With exceptionally():
+
+paymentFuture =
+     Payment(0L,"FAILED")
+
+
+Application continues normally.
+
+Success Case
+paymentFuture
+    |
+    V
+Payment(5001,"SUCCESS")
+
+Failure Case
+paymentFuture
+    |
+Exception
+    |
+exceptionally()
+    |
+    V
+Payment(0,"FAILED")
+
+Step 4: Create Shipment Future
+CompletableFuture<Shipment> shipmentFuture =
+        CompletableFuture.supplyAsync(
+                () -> shipmentService.getShipment(id));
+
+
+Third thread starts.
+
+Thread-3 starts
+
+
+Result:
+
+Shipment(7001,"SHIPPED")
+
+
+Stored in:
+
+shipmentFuture
+
+Current State
+
+All three execute in parallel.
+
+           Request
+               |
+    -------------------------
+    |          |           |
+Thread-1   Thread-2    Thread-3
+ Order      Payment    Shipment
+
+
+Example results:
+
+Order(101,"Laptop")
+
+Payment(5001,"SUCCESS")
+
+Shipment(7001,"SHIPPED")
+
+Step 5: First thenCombine()
+return orderFuture
+        .thenCombine(paymentFuture,
+                (order, payment) ->
+                        new OrderPaymentResponse(order, payment))
+
+What thenCombine Does
+
+Wait for both futures:
+
+orderFuture
+paymentFuture
+
+
+to complete.
+
+When both are ready:
+
+order =
+    Order(101,"Laptop");
+
+payment =
+    Payment(5001,"SUCCESS");
+
+
+Lambda executes:
+
+(order, payment) ->
+     new OrderPaymentResponse(order, payment)
+
+
+Creates:
+
+OrderPaymentResponse op =
+     new OrderPaymentResponse(
+           Order(101,"Laptop"),
+           Payment(5001,"SUCCESS")
+     );
+
+
+Now output becomes:
+
+CompletableFuture<OrderPaymentResponse>
+
+
+Visual:
+
+Order Future
+      |
+      |
+      +---- thenCombine ----+
+                             |
+Payment Future              |
+      |                     |
+      +---------------------+
+                |
+                V
+     OrderPaymentResponse
+
+Step 6: Second thenCombine()
+
+Now Java has:
+
+CompletableFuture<OrderPaymentResponse>
+
+
+and
+
+shipmentFuture
+
+
+Code:
+
+.thenCombine(shipmentFuture,
+        (op, shipment) ->
+                new OrderResponse(
+                        op.getOrder(),
+                        op.getPayment(),
+                        shipment))
+
+
+Waits for:
+
+OrderPaymentResponse
+Shipment
+
+
+At this point:
+
+op =
+   OrderPaymentResponse(
+       order,
+       payment
+   );
+
+shipment =
+   Shipment(7001,"SHIPPED");
+
+
+Lambda executes:
+
+(op, shipment) ->
+      new OrderResponse(
+          op.getOrder(),
+          op.getPayment(),
+          shipment)
+
+
+Creates:
+
+OrderResponse(
+     Order(101,"Laptop"),
+     Payment(5001,"SUCCESS"),
+     Shipment(7001,"SHIPPED")
+)
+
+
+Visual:
+
+Order + Payment
+        |
+        |
+        +------ thenCombine --------+
+                                     |
+Shipment Future                     |
+        |                            |
+        +----------------------------+
+                     |
+                     V
+             OrderResponse
+
+Step 7: whenComplete()
+.whenComplete((result, ex) -> {
+
+
+This executes after completion.
+
+It receives:
+
+result
+
+
+or
+
+exception
+
+Success Scenario
+result =
+OrderResponse(...)
+
+ex = null
+
+
+Code:
+
+if (ex == null) {
+    System.out.println(
+        "Order processed successfully");
+}
+
+
+Output:
+
+Order processed successfully
+
+Failure Scenario
+
+Suppose order service fails.
+
+orderRepo.findById(id)
+
+
+throws:
+
+RuntimeException
+
+
+Then:
+
+result = null
+
+ex = RuntimeException
+
+
+Output:
+
+Order processing failed
+
+Final Result Returned
+
+The method finally returns:
+
+CompletableFuture<OrderResponse>
+
+
+containing:
+
+{
+  "order": {
+    "orderId": 101,
+    "productName": "Laptop"
+  },
+  "payment": {
+    "paymentId": 5001,
+    "status": "SUCCESS"
+  },
+  "shipment": {
+    "shipmentId": 7001,
+    "shipmentStatus": "SHIPPED"
+  }
+}
+
+Complete Timeline
+Time 0
+------
+Start Order Future
+Start Payment Future
+Start Shipment Future
+
+Time 2 sec
+----------
+Order Completed
+
+Time 3 sec
+----------
+Payment Completed
+
+First thenCombine Executes
+Creates OrderPaymentResponse
+
+Time 4 sec
+----------
+Shipment Completed
+
+Second thenCombine Executes
+Creates OrderResponse
+
+whenComplete Executes
+Prints Success Message
+
+Response Returned
+
+Why thenCombine() Here?
+
+Because these calls are independent:
+
+orderRepo.findById(id)
+
+paymentService.getPayment(id)
+
+shipmentService.getShipment(id)
+
+
+None depends on another's result, so they can run in parallel and later be merged using thenCombine().
+
+If shipment needed a value from order, you'd use thenCompose() instead of thenCombine().
+
+
+
+
+
+
+--------------------------------------
+
+Let's walk through it exactly as Java executes it, assuming:
+
+id = 101
+
+
+and all three services take:
+
+Order Service    -> 2 sec
+Payment Service  -> 3 sec
+Shipment Service -> 4 sec
+
+Step 1: Create Order Future
+CompletableFuture<Order> orderFuture =
+        CompletableFuture.supplyAsync(
+                () -> orderRepo.findById(id));
+
+
+A task is submitted to a thread pool.
+
+Thread-1 starts
+
+Thread-1:
+Order order = orderRepo.findById(101);
+
+
+Result after 2 sec:
+
+Order(101, "Laptop")
+
+
+Stored inside:
+
+orderFuture
+
+Step 2: Create Payment Future
+CompletableFuture<Payment> paymentFuture =
+        CompletableFuture.supplyAsync(
+                () -> paymentService.getPayment(id))
+
+
+Another thread starts.
+
+Thread-2 starts
+
+paymentService.getPayment(101);
+
+
+Suppose it succeeds:
+
+Payment(5001, "SUCCESS")
+
+
+Stored inside:
+
+paymentFuture
+
+Step 3: Exception Handling for Payment
+.exceptionally(ex ->
+        new Payment(0L, "FAILED"));
+
+
+This executes only if:
+
+paymentService.getPayment(id)
+
+
+throws an exception.
+
+Example:
+
+throw new RuntimeException("Payment API down");
+
+
+Without exceptionally():
+
+paymentFuture = FAILED
+
+
+With exceptionally():
+
+paymentFuture =
+     Payment(0L,"FAILED")
+
+
+Application continues normally.
+
+Success Case
+paymentFuture
+    |
+    V
+Payment(5001,"SUCCESS")
+
+Failure Case
+paymentFuture
+    |
+Exception
+    |
+exceptionally()
+    |
+    V
+Payment(0,"FAILED")
+
+Step 4: Create Shipment Future
+CompletableFuture<Shipment> shipmentFuture =
+        CompletableFuture.supplyAsync(
+                () -> shipmentService.getShipment(id));
+
+
+Third thread starts.
+
+Thread-3 starts
+
+
+Result:
+
+Shipment(7001,"SHIPPED")
+
+
+Stored in:
+
+shipmentFuture
+
+Current State
+
+All three execute in parallel.
+
+           Request
+               |
+    -------------------------
+    |          |           |
+Thread-1   Thread-2    Thread-3
+ Order      Payment    Shipment
+
+
+Example results:
+
+Order(101,"Laptop")
+
+Payment(5001,"SUCCESS")
+
+Shipment(7001,"SHIPPED")
+
+Step 5: First thenCombine()
+return orderFuture
+        .thenCombine(paymentFuture,
+                (order, payment) ->
+                        new OrderPaymentResponse(order, payment))
+
+What thenCombine Does
+
+Wait for both futures:
+
+orderFuture
+paymentFuture
+
+
+to complete.
+
+When both are ready:
+
+order =
+    Order(101,"Laptop");
+
+payment =
+    Payment(5001,"SUCCESS");
+
+
+Lambda executes:
+
+(order, payment) ->
+     new OrderPaymentResponse(order, payment)
+
+
+Creates:
+
+OrderPaymentResponse op =
+     new OrderPaymentResponse(
+           Order(101,"Laptop"),
+           Payment(5001,"SUCCESS")
+     );
+
+
+Now output becomes:
+
+CompletableFuture<OrderPaymentResponse>
+
+
+Visual:
+
+Order Future
+      |
+      |
+      +---- thenCombine ----+
+                             |
+Payment Future              |
+      |                     |
+      +---------------------+
+                |
+                V
+     OrderPaymentResponse
+
+Step 6: Second thenCombine()
+
+Now Java has:
+
+CompletableFuture<OrderPaymentResponse>
+
+
+and
+
+shipmentFuture
+
+
+Code:
+
+.thenCombine(shipmentFuture,
+        (op, shipment) ->
+                new OrderResponse(
+                        op.getOrder(),
+                        op.getPayment(),
+                        shipment))
+
+
+Waits for:
+
+OrderPaymentResponse
+Shipment
+
+
+At this point:
+
+op =
+   OrderPaymentResponse(
+       order,
+       payment
+   );
+
+shipment =
+   Shipment(7001,"SHIPPED");
+
+
+Lambda executes:
+
+(op, shipment) ->
+      new OrderResponse(
+          op.getOrder(),
+          op.getPayment(),
+          shipment)
+
+
+Creates:
+
+OrderResponse(
+     Order(101,"Laptop"),
+     Payment(5001,"SUCCESS"),
+     Shipment(7001,"SHIPPED")
+)
+
+
+Visual:
+
+Order + Payment
+        |
+        |
+        +------ thenCombine --------+
+                                     |
+Shipment Future                     |
+        |                            |
+        +----------------------------+
+                     |
+                     V
+             OrderResponse
+
+Step 7: whenComplete()
+.whenComplete((result, ex) -> {
+
+
+This executes after completion.
+
+It receives:
+
+result
+
+
+or
+
+exception
+
+Success Scenario
+result =
+OrderResponse(...)
+
+ex = null
+
+
+Code:
+
+if (ex == null) {
+    System.out.println(
+        "Order processed successfully");
+}
+
+
+Output:
+
+Order processed successfully
+
+Failure Scenario
+
+Suppose order service fails.
+
+orderRepo.findById(id)
+
+
+throws:
+
+RuntimeException
+
+
+Then:
+
+result = null
+
+ex = RuntimeException
+
+
+Output:
+
+Order processing failed
+
+Final Result Returned
+
+The method finally returns:
+
+CompletableFuture<OrderResponse>
+
+
+containing:
+
+{
+  "order": {
+    "orderId": 101,
+    "productName": "Laptop"
+  },
+  "payment": {
+    "paymentId": 5001,
+    "status": "SUCCESS"
+  },
+  "shipment": {
+    "shipmentId": 7001,
+    "shipmentStatus": "SHIPPED"
+  }
+}
+
+Complete Timeline
+Time 0
+------
+Start Order Future
+Start Payment Future
+Start Shipment Future
+
+Time 2 sec
+----------
+Order Completed
+
+Time 3 sec
+----------
+Payment Completed
+
+First thenCombine Executes
+Creates OrderPaymentResponse
+
+Time 4 sec
+----------
+Shipment Completed
+
+Second thenCombine Executes
+Creates OrderResponse
+
+whenComplete Executes
+Prints Success Message
+
+Response Returned
+
+Why thenCombine() Here?
+
+Because these calls are independent:
+
+orderRepo.findById(id)
+
+paymentService.getPayment(id)
+
+shipmentService.getShipment(id)
+
+
+None depends on another's result, so they can run in parallel and later be merged using thenCombine().
+
+If shipment needed a value from order, you'd use thenCompose() instead of thenCombine().
+
+
+----------------------------------------------------
+
+
+Using the same Order → Payment → Shipment scenario, here's how each CompletableFuture method is typically used.
+
+1. thenCombine()
+
+Used when two independent futures run in parallel and you want to combine their results.
+
+Example
+public CompletableFuture<OrderPaymentResponse> getOrderAndPayment(Long id) {
+
+    CompletableFuture<Order> orderFuture =
+            CompletableFuture.supplyAsync(() -> orderRepo.findById(id));
+
+    CompletableFuture<Payment> paymentFuture =
+            CompletableFuture.supplyAsync(() -> paymentService.getPayment(id));
+
+    return orderFuture.thenCombine(
+            paymentFuture,
+            (order, payment) ->
+                    new OrderPaymentResponse(order, payment)
+    );
+}
+
+Flow
+               Request
+                   |
+        ---------------------
+        |                   |
+   Order Future      Payment Future
+        |                   |
+        -------thenCombine---
+                   |
+                   V
+       OrderPaymentResponse
+
+Response DTO
+@AllArgsConstructor
+@Data
+public class OrderPaymentResponse {
+    private Order order;
+    private Payment payment;
+}
+
+2. thenCompose()
+
+Used when the second async call depends on the first result.
+
+Suppose payment can only be fetched after getting the order.
+
+Without thenCompose
+CompletableFuture<CompletableFuture<Payment>>
+
+
+You get nested futures.
+
+With thenCompose
+public CompletableFuture<Payment> getPaymentFromOrder(Long orderId) {
+
+    return CompletableFuture
+            .supplyAsync(() -> orderRepo.findById(orderId))
+            .thenCompose(order ->
+                    CompletableFuture.supplyAsync(
+                            () -> paymentService.getPayment(order.getOrderId())
+                    ));
+}
+
+Flow
+Fetch Order
+    |
+    V
+Order Received
+    |
+thenCompose
+    |
+    V
+Fetch Payment
+    |
+    V
+Payment Result
+
+Real Use Case
+orderRepo.findById(id)
+          -> getCustomerId()
+          -> call customer service
+          -> call payment service
+
+
+Each step depends on the previous result.
+
+3. exceptionally()
+
+Used for fallback recovery.
+
+Suppose payment service fails.
+
+public CompletableFuture<Payment> getPayment(Long orderId) {
+
+    return CompletableFuture
+            .supplyAsync(() -> paymentService.getPayment(orderId))
+            .exceptionally(ex -> {
+
+                System.out.println("Exception: "
+                        + ex.getMessage());
+
+                return new Payment(
+                        0L,
+                        "FAILED"
+                );
+            });
+}
+
+Flow
+Call Payment Service
+        |
+       FAIL
+        |
+exceptionally()
+        |
+        V
+Default Payment Response
+
+Output
+
+Instead of:
+
+CompletionException
+
+
+You get:
+
+Payment(
+   paymentId=0,
+   status="FAILED"
+)
+
+4. handle()
+
+Used when you want both:
+
+Success result
+Exception result
+
+in one place.
+
+public CompletableFuture<Payment> getPayment(Long orderId) {
+
+    return CompletableFuture
+            .supplyAsync(() -> paymentService.getPayment(orderId))
+            .handle((result, ex) -> {
+
+                if (ex != null) {
+
+                    System.out.println("Error = "
+                            + ex.getMessage());
+
+                    return new Payment(
+                            0L,
+                            "ERROR"
+                    );
+                }
+
+                return result;
+            });
+}
+
+Difference
+exceptionally
+
+Has only exception.
+
+.exceptionally(ex -> fallback)
+
+handle
+
+Has both result and exception.
+
+.handle((result, ex) -> ...)
+
+Success Scenario
+result = Payment(SUCCESS)
+ex = null
+
+
+Returns:
+
+result
+
+Failure Scenario
+result = null
+ex = RuntimeException
+
+
+Returns:
+
+new Payment(0L,"ERROR")
+
+5. whenComplete()
+
+Used for auditing/logging.
+
+It does not change the result.
+
+public CompletableFuture<Payment> getPayment(Long orderId) {
+
+    return CompletableFuture
+            .supplyAsync(() -> paymentService.getPayment(orderId))
+            .whenComplete((result, ex) -> {
+
+                if (ex == null) {
+                    System.out.println(
+                            "Payment Success : "
+                                    + result.getStatus());
+                }
+                else {
+                    System.out.println(
+                            "Payment Failed : "
+                                    + ex.getMessage());
+                }
+            });
+}
+
+Flow
+Get Payment
+      |
+      V
+whenComplete
+      |
+      V
+Logging Only
+      |
+      V
+Original Result Returned
+
+
+Unlike handle(), it cannot replace the result.
+
+Complete Enterprise Example
+
+Imagine:
+
+1. Fetch Order
+2. Fetch Payment
+3. Fetch Shipment
+4. Combine all
+5. Handle errors
+6. Log success/failure
+
+public CompletableFuture<OrderResponse> getOrderDetails(Long id) {
+
+    CompletableFuture<Order> orderFuture =
+            CompletableFuture.supplyAsync(
+                    () -> orderRepo.findById(id));
+
+    CompletableFuture<Payment> paymentFuture =
+            CompletableFuture.supplyAsync(
+                    () -> paymentService.getPayment(id))
+                    .exceptionally(ex ->
+                            new Payment(0L, "FAILED"));
+
+    CompletableFuture<Shipment> shipmentFuture =
+            CompletableFuture.supplyAsync(
+                    () -> shipmentService.getShipment(id));
+
+    return orderFuture
+            .thenCombine(paymentFuture,
+                    (order, payment) ->
+                            new OrderPaymentResponse(order, payment))
+
+            .thenCombine(shipmentFuture,
+                    (op, shipment) ->
+                            new OrderResponse(
+                                    op.getOrder(),
+                                    op.getPayment(),
+                                    shipment))
+
+            .whenComplete((result, ex) -> {
+
+                if (ex == null) {
+                    System.out.println(
+                            "Order processed successfully");
+                } else {
+                    System.out.println(
+                            "Order processing failed");
+                }
+            });
+}
+
+Visual Flow
+              Request
+                 |
+    --------------------------------
+    |              |              |
+ Order Future  Payment Future  Shipment Future
+    |              |              |
+    |         exceptionally()     |
+    |              |              |
+    ------- thenCombine -----------
+                 |
+      Order + Payment
+                 |
+         thenCombine
+                 |
+      + Shipment Data
+                 |
+          OrderResponse
+                 |
+        whenComplete
+                 |
+              Return
+
+Interview Shortcut
+Method	PurposethenApply()	Transform result (A -> B)
+thenCompose()	Chain dependent async calls
+thenCombine()	Merge independent futures
+allOf()	Wait for all futures
+exceptionally()	Fallback on error
+handle()	Process success or error
+whenComplete()	Logging/Auditing after completion
+
+A common interview question is: "When to use thenCompose vs thenCombine?"
+
+Use thenCompose when the second call depends on the first call's result.
+Use thenCombine when both calls are independent and can run in parallel.			  
+			  
+			  
+			  
+			  
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

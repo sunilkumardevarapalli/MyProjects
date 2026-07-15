@@ -1,0 +1,406 @@
+For a **12+ years experienced Java/Spring Boot developer**, the expectation is not just *how to use constructor injection and setter injection*, but **when to use them and why one is preferred over the other**.
+
+---
+
+# Constructor Injection vs Setter Injection in Spring Boot
+
+| Feature                    | Constructor Injection            | Setter Injection                                |
+| -------------------------- | -------------------------------- | ----------------------------------------------- |
+| Dependency provided        | Through constructor              | Through setter method                           |
+| Mandatory dependency       | Yes                              | No                                              |
+| Object immutability        | Supported                        | Not supported                                   |
+| Null safety                | Better                           | Can be null                                     |
+| Circular dependency        | Fails immediately                | Can resolve some circular dependencies          |
+| Unit testing               | Easier                           | Slightly harder                                 |
+| Thread safety              | Better                           | Less safe                                       |
+| Bean creation              | Complete object at creation time | Object created first, dependency injected later |
+| Recommended by Spring      | Yes                              | Only for optional dependencies                  |
+| Use with final fields      | Yes                              | No                                              |
+| Visibility of dependencies | Explicit                         | Hidden                                          |
+| Performance                | Slightly better                  | Slightly slower                                 |
+
+---
+
+# 1. Constructor Injection
+
+Dependencies are supplied when the object is created.
+
+```java
+@Service
+public class PaymentService {
+
+    private final NotificationService notificationService;
+
+    public PaymentService(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
+    public void processPayment() {
+        notificationService.sendMessage();
+    }
+}
+```
+
+### Spring Boot 4.x / Spring Boot 3.x
+
+If only one constructor exists, `@Autowired` is optional.
+
+```java
+@Service
+public class PaymentService {
+
+    private final NotificationService notificationService;
+
+    public PaymentService(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+}
+```
+
+---
+
+# Advantages of Constructor Injection
+
+### 1. Ensures mandatory dependencies
+
+```java
+public PaymentService(NotificationService notificationService)
+```
+
+The object cannot be created without `NotificationService`.
+
+---
+
+### 2. Supports immutable objects
+
+```java
+private final NotificationService notificationService;
+```
+
+Dependency cannot change after creation.
+
+---
+
+### 3. Better Unit Testing
+
+```java
+NotificationService mock = Mockito.mock(NotificationService.class);
+
+PaymentService service =
+        new PaymentService(mock);
+```
+
+No Spring context required.
+
+---
+
+### 4. Fail Fast
+
+Application startup fails immediately if dependency is missing.
+
+```
+No qualifying bean of type NotificationService found
+```
+
+---
+
+### 5. Clear visibility of dependencies
+
+Constructor parameters reveal all dependencies.
+
+```java
+public OrderService(
+        PaymentService paymentService,
+        EmailService emailService,
+        InventoryService inventoryService)
+```
+
+---
+
+# Real-Time Example
+
+### OrderService
+
+Mandatory components:
+
+* PaymentService
+* InventoryService
+* NotificationService
+
+```java
+@Service
+public class OrderService {
+
+    private final PaymentService paymentService;
+    private final InventoryService inventoryService;
+    private final NotificationService notificationService;
+
+    public OrderService(
+            PaymentService paymentService,
+            InventoryService inventoryService,
+            NotificationService notificationService) {
+
+        this.paymentService = paymentService;
+        this.inventoryService = inventoryService;
+        this.notificationService = notificationService;
+    }
+}
+```
+
+These services are essential for processing orders.
+
+---
+
+# Setter Injection
+
+Dependencies are injected after object creation.
+
+```java
+@Service
+public class EmailService {
+
+    private SmsService smsService;
+
+    @Autowired
+    public void setSmsService(SmsService smsService) {
+        this.smsService = smsService;
+    }
+}
+```
+
+---
+
+# Advantages of Setter Injection
+
+### Optional Dependencies
+
+```java
+@Service
+public class ReportService {
+
+    private AuditService auditService;
+
+    @Autowired(required = false)
+    public void setAuditService(AuditService auditService) {
+        this.auditService = auditService;
+    }
+}
+```
+
+Application works even if `AuditService` bean doesn't exist.
+
+---
+
+### Runtime Modification Possible
+
+```java
+reportService.setAuditService(new AuditService());
+```
+
+Useful for configuration changes.
+
+---
+
+# Real-Time Example
+
+Suppose audit logging is optional.
+
+```java
+@Service
+public class PaymentService {
+
+    private AuditService auditService;
+
+    @Autowired(required = false)
+    public void setAuditService(AuditService auditService) {
+        this.auditService = auditService;
+    }
+
+    public void process() {
+
+        if (auditService != null) {
+            auditService.log();
+        }
+    }
+}
+```
+
+---
+
+# Bean Lifecycle Difference
+
+## Constructor Injection
+
+```
+Spring Container
+       ↓
+Create Bean
+       ↓
+Call Constructor
+       ↓
+Inject Dependencies
+       ↓
+Bean Ready
+```
+
+Object is fully initialized immediately.
+
+---
+
+## Setter Injection
+
+```
+Spring Container
+       ↓
+Create Bean
+       ↓
+Default Constructor
+       ↓
+Object Created
+       ↓
+Setter Methods Called
+       ↓
+Dependencies Injected
+       ↓
+Bean Ready
+```
+
+Dependencies arrive later.
+
+---
+
+# Circular Dependency
+
+### Constructor Injection
+
+```java
+@Service
+class A {
+    public A(B b) {}
+}
+
+@Service
+class B {
+    public B(A a) {}
+}
+```
+
+Error:
+
+```
+BeanCurrentlyInCreationException
+```
+
+Spring cannot create either bean first.
+
+---
+
+### Setter Injection
+
+```java
+@Service
+class A {
+
+    private B b;
+
+    @Autowired
+    public void setB(B b) {
+        this.b = b;
+    }
+}
+
+@Service
+class B {
+
+    private A a;
+
+    @Autowired
+    public void setA(A a) {
+        this.a = a;
+    }
+}
+```
+
+Spring creates objects first and injects later, so circular dependency may work (though redesign is preferred).
+
+---
+
+# Interview Question (12+ Years Level)
+
+### Why does Spring recommend Constructor Injection over Setter Injection?
+
+**Answer:**
+
+1. Promotes immutability.
+2. Mandatory dependencies are enforced.
+3. Better unit testing.
+4. Fail-fast behavior.
+5. Supports `final` fields.
+6. Improves thread safety.
+7. Makes dependencies explicit.
+8. Avoids partially initialized objects.
+9. Recommended by Spring Framework team.
+10. Aligns with SOLID principles (Dependency Inversion).
+
+---
+
+# When to Use Constructor Injection
+
+✅ Service-to-Service dependencies
+
+```java
+OrderService → PaymentService
+OrderService → InventoryService
+UserService → UserRepository
+```
+
+✅ Mandatory beans
+
+✅ Production microservices
+
+✅ Thread-safe immutable design
+
+---
+
+# When to Use Setter Injection
+
+✅ Optional dependencies
+
+```java
+AuditService
+MetricsService
+CacheService
+FeatureToggleService
+```
+
+✅ Legacy code
+
+✅ Dynamic configuration
+
+---
+
+# 12+ Years Experience Recommendation
+
+**Use Constructor Injection by default.**
+
+```java
+@Service
+@RequiredArgsConstructor // Lombok
+public class OrderService {
+
+    private final PaymentService paymentService;
+    private final InventoryService inventoryService;
+    private final NotificationService notificationService;
+}
+```
+
+Use **Setter Injection only for optional dependencies**:
+
+```java
+@Autowired(required = false)
+public void setAuditService(AuditService auditService) {
+    this.auditService = auditService;
+}
+```
+
+This is the approach commonly followed in enterprise Spring Boot microservices and is the answer expected in senior-level (12+ years) interviews.

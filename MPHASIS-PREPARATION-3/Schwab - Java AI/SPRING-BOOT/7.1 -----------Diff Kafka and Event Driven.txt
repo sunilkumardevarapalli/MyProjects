@@ -1,0 +1,344 @@
+Kafka and **Event-Driven Architecture (EDA)** are related, but **they are not the same**.
+
+### Simple definition
+
+> **Event-Driven Architecture is a design/architecture style. Kafka is a technology/tool that can be used to implement Event-Driven Architecture.**
+
+![Image](https://images.openai.com/static-rsc-4/_QfGY0KHQW6vFI0C940ZpePZqRq6boW1lD9wqw2SDrTG3mhz-8MN6sc4-AfMV1DPDTau2cXIu_rxaxhlfwQXO8BLCh5SpFEswsIfG7hLtItRrL-ttDlSQ9tzHdRsj5DIdSNxIV88r_orStY8u12KGY_8QwbKqQHR3wpThb94uDA2veuX4e1ArYuluH3v-lZp?purpose=fullsize)
+
+![Image](https://images.openai.com/static-rsc-4/BK3FxTegEB3bD_jmgLe6oACFCqa5qgm5y11Jxat07XGMsZp672lWN4fiIMqDLIRb9hTflRKwFLc-px6aWWEgxN662AZzGwMUj9iweGs-LY5wM5FMatYs4KMlGKHXRnNhBZxNiHb0EHN3m0FZXCiF9NIbg3wFYGDwYz8-46kxjZ2d0Dh5zab58lEsRgxdw2Zv?purpose=fullsize)
+
+![Image](https://images.openai.com/static-rsc-4/jN97d525m-haHfeZlFbRwHzqrPKpr1YRa_bqPLN1Z58IH8asjDHMsU6zG6w0yJwQLLpeU0BaC0aCGcbPIcQdw7JL6gCaCUnLE1YbyrdHi2u4FmpHcqkTgnmglgGZaTpDB6kM0MyrJaGXMyyEbd7X0TSJWxRPFvaKMjSS34TiiGdjd-gE-szB8EiO6W6aSnWL?purpose=fullsize)
+
+![Image](https://images.openai.com/static-rsc-4/r_1Kit6TP6258aJVYnSF7W_zR7cLOATNfV3uRoxGCetot-0xbqiubFSlo-n347oajDiZ7WdpkjgAe00A1PTLc1VRYDPm5cMe0PKbXQXnXn2Tyuk1cxsPGe7itKqn52-meF147tIbZQ20-4FRKVATf44haPzmfMXNDxnJAzEuZbrA7nZpZraye8mzlfpz9NcK?purpose=fullsize)
+
+![Image](https://images.openai.com/static-rsc-4/D_TyOgdPIt0NFi7lG_IUkiKQJ895h3l0J3qwptla2cxuYt0kuew3Y4dNISpbpuV2G8ioOcIxWm9ay-fxWzdf0jE71v5MPUEgdMsPcwFyxPg0dyuB79KiP7FK1JGJDPlOwmn_kmcaPaHoisfIuSn5WwaFvGj5otIH_MrvGnk9xJtlQBdT-76krzFzsdpd7j9g?purpose=fullsize)
+
+## 1. What is Event-Driven Architecture?
+
+**Event-Driven Architecture (EDA)** is an **architectural pattern** where services communicate using **events**.
+
+An **event means something has already happened**.
+
+Examples:
+
+* `OrderCreated`
+* `PaymentCompleted`
+* `PaymentFailed`
+* `CustomerRegistered`
+* `InventoryUpdated`
+
+### Example
+
+```text
+Customer places order
+        |
+        v
+Order Service
+        |
+        | OrderCreated Event
+        v
+   Event System
+    /    |     \
+   v     v      v
+Payment Inventory Notification
+Service  Service    Service
+```
+
+The **Order Service does not need to directly call all three services**.
+
+It simply publishes:
+
+```text
+OrderCreated
+```
+
+Interested services react to the event.
+
+### Key point
+
+> **EDA tells us HOW to design communication between systems.**
+
+---
+
+## 2. What is Kafka?
+
+Apache Kafka is a **distributed event streaming platform**.
+
+It provides the infrastructure to:
+
+* Publish events
+* Store events
+* Consume events
+* Replay events
+* Process high-volume event streams
+
+### Kafka architecture
+
+```text
+Producer
+   |
+   | Publish Event
+   v
+Kafka Topic
+   |
+   |-------------------
+   |         |         |
+   v         v         v
+Consumer A Consumer B Consumer C
+Payment    Inventory  Notification
+Service    Service    Service
+```
+
+Example:
+
+```text
+Order Service
+     |
+     | OrderCreated
+     v
+Kafka Topic: order-events
+     |
+     +------> Payment Service
+     |
+     +------> Inventory Service
+     |
+     +------> Notification Service
+```
+
+### Key point
+
+> **Kafka is a TOOL/TECHNOLOGY used to implement event communication.**
+
+Official documentation: [Apache Kafka](https://kafka.apache.org/?utm_source=chatgpt.com)
+
+---
+
+# Kafka vs Event-Driven Architecture
+
+| Feature                | Event-Driven Architecture           | Kafka                                  |
+| ---------------------- | ----------------------------------- | -------------------------------------- |
+| Type                   | Architecture pattern                | Technology / platform                  |
+| Purpose                | Design event-based systems          | Publish, store and consume events      |
+| Is it software?        | ❌ No                                | ✅ Yes                                  |
+| Defines system design? | ✅ Yes                               | ❌ No                                   |
+| Stores events?         | Depends on technology               | ✅ Yes                                  |
+| Event replay           | Depends on implementation           | ✅ Supported                            |
+| Example                | OrderCreated → Payment              | Kafka Topic                            |
+| Alternatives           | Different implementation approaches | RabbitMQ, Pulsar, cloud event services |
+
+---
+
+# Real-time microservices example
+
+Suppose we have:
+
+```text
+Order Service
+Payment Service
+Inventory Service
+Notification Service
+```
+
+## Without Event-Driven Architecture
+
+Order Service directly calls other services:
+
+```text
+Order Service
+     |
+     +---- REST ----> Payment Service
+     |
+     +---- REST ----> Inventory Service
+     |
+     +---- REST ----> Notification Service
+```
+
+Java example:
+
+```java
+paymentService.processPayment();
+
+inventoryService.updateInventory();
+
+notificationService.sendEmail();
+```
+
+### Problem
+
+If Notification Service is down:
+
+```text
+Order Service
+     |
+     v
+Notification Service ❌
+```
+
+Depending on the implementation, the overall workflow can fail or require retry/error-handling logic in the Order Service.
+
+Also, Order Service is aware of multiple downstream services.
+
+```text
+Order Service knows:
+
+Payment Service
+Inventory Service
+Notification Service
+```
+
+This creates **tighter coupling**.
+
+---
+
+# With Event-Driven Architecture + Kafka
+
+```text
+Order Service
+     |
+     | OrderCreated
+     v
+Kafka
+     |
+     +----> Payment Service
+     |
+     +----> Inventory Service
+     |
+     +----> Notification Service
+```
+
+Order Service only publishes an event:
+
+```java
+kafkaTemplate.send(
+    "order-events",
+    new OrderCreatedEvent(orderId)
+);
+```
+
+The Order Service says:
+
+> `"Order has been created."`
+
+It does **not need to tell each consumer what to do**.
+
+Payment Service:
+
+```java
+@KafkaListener(topics = "order-events")
+public void processPayment(OrderCreatedEvent event) {
+
+    // Process payment
+}
+```
+
+Inventory Service:
+
+```java
+@KafkaListener(topics = "order-events")
+public void updateInventory(OrderCreatedEvent event) {
+
+    // Update inventory
+}
+```
+
+Notification Service:
+
+```java
+@KafkaListener(topics = "order-events")
+public void sendNotification(OrderCreatedEvent event) {
+
+    // Send notification
+}
+```
+
+This overall design is:
+
+```text
+Event-Driven Architecture
+```
+
+Kafka is the infrastructure carrying and retaining the events:
+
+```text
+Kafka
+```
+
+---
+
+# Very important interview difference
+
+### Event-Driven Architecture
+
+```text
+WHAT IS THE DESIGN?
+```
+
+Answer:
+
+> Services communicate and react to events.
+
+### Kafka
+
+```text
+HOW CAN WE IMPLEMENT IT?
+```
+
+Answer:
+
+> Kafka provides distributed event streaming infrastructure for producing, storing, and consuming events.
+
+---
+
+# Simple analogy
+
+Think about **road transportation**.
+
+```text
+Transportation System = Architecture
+Car = Technology
+```
+
+Similarly:
+
+```text
+Event-Driven Architecture = Architecture / Design Style
+
+Kafka = Technology / Event Streaming Platform
+```
+
+Another example:
+
+```text
+Microservices Architecture
+        |
+        v
+Spring Boot
+```
+
+Spring Boot is **not microservices architecture**.
+
+Spring Boot can be used to **build microservices**.
+
+Similarly:
+
+```text
+Event-Driven Architecture
+        |
+        v
+Kafka
+```
+
+Kafka is **not Event-Driven Architecture**.
+
+Kafka can be used to **implement Event-Driven Architecture**.
+
+---
+
+## Best interview answer
+
+> **Event-Driven Architecture is an architectural style in which services communicate by producing and reacting to events. Kafka is a distributed event streaming platform that can be used to implement event-driven architecture by allowing producers to publish events to topics and consumers to process those events asynchronously. EDA defines the design approach, whereas Kafka provides the infrastructure.**
+
+### One-line answer
+
+> **EDA is the architecture; Kafka is one technology used to implement that architecture.**

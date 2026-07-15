@@ -1,0 +1,31 @@
+
+
+JPA/Hibernate Custom Queries
+
+	In JPA/Hibernate, custom queries are used when repository-derived methods are not sufficient 
+
+	for complex data retrieval, updates, joins, aggregations, or database-specific operations.
+	
+1. JPQL (Java Persistence Query Language)
+
+	JPQL works with entity objects and their fields, not directly with database tables.
+	
+	@Query
+		1. Queries with Entity and their Fields
+		
+		2. Native SQL Queries: mention nativeQuery = true
+		
+		3. Named Queries:
+		
+		4. Update and Delete Queries:@Modifying and @Transactional
+		
+		5. Projection Queries
+		
+	Dynamic Queries with Criteria API
+	
+	Pagination with Custom Query:
+		
+		@Query("SELECT e FROM Employee e WHERE e.salary > :salary")
+		Page<Employee> findEmployees(@Param("salary") double salary,Pageable pageable);
+		
+		Page<Employee> page =repository.findEmployees(50000,PageRequest.of(0, 10));

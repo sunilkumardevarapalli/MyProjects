@@ -1,0 +1,349 @@
+
+
+What is Bulkhead Pattern?
+
+	Bulkhead Pattern is a resilience pattern used in microservices to isolate resources between different services or operations 
+	so that failure or overload in one component does not affect others.
+	
+	Circuit Breaker: Service Failure
+	
+	Bulkhead Pattern: Resource Exhaustion
+	
+Two types of Bulkhead Patteren.
+
+1. Semaphore Bulkhead
+
+		 @Bulkhead(
+					name = "paymentBulkhead",
+					type = Bulkhead.Type.SEMAPHORE,
+					fallbackMethod = "bulkheadFallback"
+			)
+			public String processPayment(Long id)
+					throws InterruptedException {
+
+				Thread.sleep(10000);
+
+				return "Payment Success : " + id;
+			}
+			
+Configuration
+resilience4j:
+  bulkhead:
+    instances:
+      paymentBulkhead:
+        maxConcurrentCalls: 2
+        maxWaitDuration: 1s	
+
+2. Thread Pool Bulkhead
+
+	Thread Pool Bulkhead Example
+	@Bulkhead(
+		 name="paymentBulkhead",
+		 type = Bulkhead.Type.THREADPOOL,
+		 fallbackMethod="bulkheadFallback")
+
+	Configuration:
+
+		resilience4j:
+		  thread-pool-bulkhead:
+			instances:
+			  paymentBulkhead:
+				coreThreadPoolSize: 2
+				maxThreadPoolSize: 4
+				queueCapacity: 10
+
+---------------------------------------------------------------------------
+
+Using the same interview flow:
+
+1. What is Bulkhead Pattern?
+
+	Bulkhead Pattern is a resilience pattern used in microservices to isolate resources between different services or operations 
+	so that failure or overload in one component does not affect others.
+
+	The name comes from ships where watertight compartments (bulkheads) prevent the entire ship from sinking 
+	if one compartment is damaged.
+
+	In Spring Boot, Bulkhead is commonly implemented using Resilience4j.
+
+2. Why do we need it?
+
+		Suppose Order Service calls:
+
+		Order Service
+			  |
+		-------------------------
+		|           |           |
+		v           v           v
+		Payment   Inventory   Notification
+		Service   Service      Service
+
+
+		If Payment Service becomes very slow:
+
+		100 Threads Occupied
+
+
+		All available threads may be consumed by Payment Service calls.
+
+		As a result:
+
+		Inventory Calls Fail
+		Notification Calls Fail
+		Order Service Slow
+
+
+		This is called resource exhaustion.
+
+		Bulkhead prevents this by allocating separate resources for different operations.
+
+3. How it Works?
+
+Without Bulkhead:
+
+Thread Pool (100)
+        |
+----------------------------------------
+|        |        |         |
+Payment Inventory Notification Others
+
+
+If Payment consumes all threads:
+
+Payment = 100 Threads
+Inventory = 0
+Notification = 0
+
+
+Entire application suffers.
+
+With Bulkhead:
+
+Payment Pool      = 30 Threads
+
+Inventory Pool    = 30 Threads
+
+Notification Pool = 20 Threads
+
+Others Pool       = 20 Threads
+
+
+Now if Payment is overloaded:
+
+Payment Pool Full
+
+
+Inventory and Notification continue working normally.
+
+Types of Bulkhead in Resilience4j
+
+1. Semaphore Bulkhead
+
+	Limits concurrent calls.
+
+	Example:
+
+	Only 5 requests allowed.
+
+
+6th request gets rejected immediately.
+
+2. Thread Pool Bulkhead
+
+	Creates separate thread pools.
+
+	Example:
+
+	Payment Service
+
+	Core Threads = 5
+	Max Threads = 10
+	Queue Size = 50
+
+
+Most commonly used in microservices.
+
+4. Real-Time Project Use Case
+
+In our project, Order Service interacted with Payment, Inventory, and Notification services. During peak traffic, 
+Payment Service occasionally became slow due to external bank APIs. Without isolation, Payment requests consumed most 
+application threads, impacting the other services as well. We implemented a Resilience4j Bulkhead pattern and allocated a 
+dedicated thread pool for Payment operations. Even when Payment Service was slow, Inventory and Notification services continued 
+processing requests normally. This improved application stability and prevented resource exhaustion.
+
+5. Benefits
+Prevents resource exhaustion.
+Improves application stability.
+Isolates failures.
+Protects critical services.
+Better throughput.
+Better user experience.
+6. Security
+
+Bulkhead is not a security mechanism.
+
+However it helps:
+
+Prevent service overload.
+Reduce risk of DoS-like thread exhaustion.
+Maintain availability of critical services.
+7. Monitoring
+
+Using Actuator + Prometheus + Grafana.
+
+Monitor:
+
+Available Threads
+Queue Capacity
+Rejected Requests
+Concurrent Calls
+Response Time
+
+
+Actuator:
+
+/actuator/metrics
+
+8. Limitations
+Extra configuration required.
+Incorrect pool sizes may cause bottlenecks.
+More resource consumption.
+Monitoring becomes important.
+End-to-End Code Example
+Dependency
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+</dependency>
+
+Service Class
+@Service
+public class PaymentService {
+
+    @Bulkhead(
+            name = "paymentBulkhead",
+            type = Bulkhead.Type.SEMAPHORE,
+            fallbackMethod = "bulkheadFallback"
+    )
+    public String processPayment(Long id)
+            throws InterruptedException {
+
+        Thread.sleep(10000);
+
+        return "Payment Success : " + id;
+    }
+
+    public String bulkheadFallback(
+            Long id,
+            Exception ex) {
+
+        return "Too many requests. Please try later.";
+    }
+}
+
+Controller
+@RestController
+@RequestMapping("/payment")
+public class PaymentController {
+
+    @Autowired
+    private PaymentService paymentService;
+
+    @GetMapping("/{id}")
+    public String payment(
+            @PathVariable Long id)
+            throws InterruptedException {
+
+        return paymentService.processPayment(id);
+    }
+}
+
+Configuration
+resilience4j:
+  bulkhead:
+    instances:
+      paymentBulkhead:
+        maxConcurrentCalls: 2
+        maxWaitDuration: 1s
+
+Testing Locally
+Call 1
+GET /payment/1
+
+
+Accepted.
+
+Call 2
+GET /payment/2
+
+
+Accepted.
+
+Call 3
+GET /payment/3
+
+
+Bulkhead limit exceeded.
+
+Fallback executed.
+
+Output:
+
+Too many requests. Please try later.
+
+Thread Pool Bulkhead Example
+@Bulkhead(
+     name="paymentBulkhead",
+     type = Bulkhead.Type.THREADPOOL,
+     fallbackMethod="bulkheadFallback")
+
+
+Configuration:
+
+resilience4j:
+  thread-pool-bulkhead:
+    instances:
+      paymentBulkhead:
+        coreThreadPoolSize: 2
+        maxThreadPoolSize: 4
+        queueCapacity: 10
+
+Difference Between Circuit Breaker and Bulkhead
+Circuit Breaker
+
+Protects against:
+
+Service Failure
+
+
+Example:
+
+Payment Service Down
+
+
+Circuit opens and returns fallback.
+
+Bulkhead
+
+Protects against:
+
+Resource Exhaustion
+
+
+Example:
+
+Payment Service Slow
+
+
+Threads get isolated so other services keep working.
+
+Interview Answer (2 Minutes)
+
+Bulkhead is a resilience pattern used to isolate resources and prevent failures in one service from affecting others.
+ It works by allocating separate thread pools or concurrency limits for different operations. In my project, 
+ Order Service communicated with Payment, Inventory, and Notification services. When Payment Service became slow, 
+ it consumed a large number of application threads and impacted other services. 
+ To solve this, we implemented Resilience4j Bulkhead and configured dedicated resources for Payment calls. 
+ This ensured that even during heavy load or downstream latency, Inventory and Notification services remained responsive. 
+ We monitored bulkhead metrics using Actuator, Prometheus, and Grafana. The key benefit is preventing resource exhaustion 
+ and improving overall system resilience.

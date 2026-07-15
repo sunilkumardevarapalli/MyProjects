@@ -1,0 +1,1608 @@
+# Distributed Logging & Monitoring
+
+Distributed Logging and Monitoring are essential in **Microservices Architecture**, 
+where multiple services run independently across different servers, containers, or cloud environments.
+
+***
+
+# Why Do We Need Distributed Logging & Monitoring?
+
+Traditional Monolithic Application:
+
+```text
+Application
+    ↓
+Single Log File
+```
+
+Easy to debug.
+
+***
+
+Microservices Application:
+
+```text
+API Gateway
+    ↓
+User Service
+    ↓
+Order Service
+    ↓
+Payment Service
+    ↓
+Notification Service
+```
+
+Each service generates its own logs.
+
+Challenges:
+
+* Logs scattered across services
+* Hard to trace requests
+* Difficult root cause analysis
+* Performance bottlenecks harder to identify
+
+***
+
+# Distributed Logging
+
+Distributed Logging means collecting logs from multiple services into a centralized location.
+
+## Flow
+
+```text
+Microservice A
+      ↓
+Microservice B
+      ↓
+Microservice C
+      ↓
+Log Collector
+      ↓
+Centralized Log Storage
+      ↓
+Dashboard/Search
+```
+
+***
+
+# Logging Architecture
+
+```text
+Application Logs
+       ↓
+Log Agent (Fluentd/Filebeat)
+       ↓
+Log Processor (Logstash)
+       ↓
+Elasticsearch
+       ↓
+Kibana Dashboard
+```
+
+This is commonly called:
+
+```text
+ELK Stack
+```
+
+* E → Elasticsearch
+* L → Logstash
+* K → Kibana
+
+***
+
+# Example Log Entry
+
+```json
+{
+  "timestamp":"2026-07-06T10:15:00",
+  "service":"OrderService",
+  "level":"INFO",
+  "traceId":"abc123",
+  "message":"Order Created Successfully"
+}
+```
+
+***
+
+# Structured Logging
+
+Instead of:
+
+```text
+Order Created
+```
+
+Use:
+
+```json
+{
+   "orderId":"1001",
+   "userId":"500",
+   "status":"CREATED"
+}
+```
+
+Benefits:
+
+* Easy searching
+* Easy filtering
+* Better analytics
+
+***
+
+# Correlation ID / Trace ID
+
+Most important concept in distributed systems.
+
+Suppose a user places an order.
+
+```text
+Request
+    ↓
+Gateway
+    ↓
+Order Service
+    ↓
+Payment Service
+    ↓
+Inventory Service
+```
+
+Every log contains:
+
+```text
+TraceID = XYZ123
+```
+
+Example:
+
+```text
+[XYZ123] Order Created
+
+[XYZ123] Payment Success
+
+[XYZ123] Inventory Updated
+```
+
+Now developers can track the entire request flow.
+
+***
+
+# Logging Tools
+
+## ELK Stack
+
+```text
+Elasticsearch
+Logstash
+Kibana
+```
+
+Features:
+
+* Centralized logging
+* Search logs
+* Dashboards
+* Visualizations
+
+***
+
+## EFK Stack
+
+```text
+Elasticsearch
+Fluentd
+Kibana
+```
+
+Used heavily in Kubernetes.
+
+***
+
+## Splunk
+
+Enterprise logging platform.
+
+Features:
+
+* Log analytics
+* Alerting
+* Search
+
+***
+
+## Graylog
+
+Open-source centralized logging solution.
+
+***
+
+# Monitoring
+
+Monitoring tracks system health and performance.
+
+***
+
+## What Is Monitored?
+
+### Infrastructure Metrics
+
+```text
+CPU Usage
+Memory Usage
+Disk Usage
+Network Usage
+```
+
+***
+
+### Application Metrics
+
+```text
+Response Time
+Request Count
+Error Rate
+Throughput
+```
+
+***
+
+### Business Metrics
+
+```text
+Orders Created
+Payments Processed
+Active Users
+Revenue
+```
+
+***
+
+# Monitoring Architecture
+
+```text
+Application
+      ↓
+Metrics Exporter
+      ↓
+Prometheus
+      ↓
+Grafana
+```
+
+***
+
+# Prometheus
+
+Prometheus collects metrics periodically.
+
+Example Metrics:
+
+```text
+http_requests_total
+```
+
+```text
+jvm_memory_used_bytes
+```
+
+```text
+cpu_usage_percent
+```
+
+***
+
+# Grafana
+
+Grafana visualizes metrics.
+
+Example Dashboard:
+
+```text
+CPU Usage
+Memory Usage
+Response Time
+Error Rate
+```
+
+Real-time charts:
+
+```text
+██████████
+```
+
+***
+
+# Spring Boot Monitoring Example
+
+Add dependency:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>
+      spring-boot-starter-actuator
+    </artifactId>
+</dependency>
+```
+
+Metrics endpoint:
+
+```text
+/actuator/metrics
+```
+
+Health endpoint:
+
+```text
+/actuator/health
+```
+
+Example:
+
+```json
+{
+   "status":"UP"
+}
+```
+
+***
+
+# Distributed Tracing
+
+Distributed tracing tracks requests across services.
+
+***
+
+## Flow
+
+```text
+User Request
+     ↓
+Gateway
+     ↓
+Order Service
+     ↓
+Payment Service
+     ↓
+Inventory Service
+```
+
+Trace:
+
+```text
+TraceID: ABC123
+```
+
+All services share the same Trace ID.
+
+***
+
+# Tools for Distributed Tracing
+
+## Zipkin
+
+```text
+Request Tracking
+Latency Analysis
+Dependency Visualization
+```
+
+***
+
+## Jaeger
+
+Very popular in Kubernetes and Microservices.
+
+Provides:
+
+* End-to-end request tracing
+* Service dependency graphs
+* Performance analysis
+
+***
+
+## OpenTelemetry
+
+Industry-standard observability framework.
+
+Supports:
+
+```text
+Logs
+Metrics
+Traces
+```
+
+***
+
+# Monitoring Metrics (Golden Signals)
+
+Google SRE recommends monitoring:
+
+### 1. Latency
+
+```text
+Response Time
+```
+
+Example:
+
+```text
+200 ms
+```
+
+***
+
+### 2. Traffic
+
+```text
+Requests Per Second
+```
+
+Example:
+
+```text
+500 RPS
+```
+
+***
+
+### 3. Errors
+
+Example:
+
+```text
+5xx Errors
+```
+
+***
+
+### 4. Saturation
+
+Resource utilization:
+
+```text
+CPU
+Memory
+Disk
+```
+
+***
+
+# Alerting
+
+Monitoring is incomplete without alerts.
+
+Example Rules:
+
+```text
+CPU > 90%
+```
+
+```text
+Memory > 85%
+```
+
+```text
+Error Rate > 5%
+```
+
+```text
+Response Time > 2 seconds
+```
+
+Alert Channels:
+
+* Email
+* Teams
+* Slack
+* SMS
+* PagerDuty
+
+***
+
+# Real-World Production Setup
+
+```text
+Microservices
+      ↓
+OpenTelemetry
+      ↓
+Logs --------→ ELK
+      ↓
+Metrics -----→ Prometheus
+      ↓
+Traces ------→ Jaeger
+      ↓
+Grafana Dashboard
+      ↓
+Alerts
+```
+
+***
+
+# Interview Questions
+
+### What is Distributed Logging?
+
+Centralized collection and analysis of logs from multiple services.
+
+### Why use a Correlation ID?
+
+To trace a single request across multiple microservices.
+
+### Difference between Logging and Monitoring?
+
+**Logging**
+
+```text
+Event Records
+```
+
+Example:
+
+```text
+User Login Success
+```
+
+**Monitoring**
+
+```text
+System Metrics
+```
+
+Example:
+
+```text
+CPU = 80%
+```
+
+### What is Distributed Tracing?
+
+Tracking a request across multiple services using Trace IDs.
+
+### ELK vs Prometheus?
+
+**ELK**
+
+* Stores logs
+* Search and analysis
+
+**Prometheus**
+
+* Stores metrics
+* Monitoring and alerting
+
+***
+
+# Quick Architecture Diagram
+
+```text
+Client
+   ↓
+API Gateway
+   ↓
+Microservices
+   ↓
+─────────────────────────
+Logs      → ELK
+Metrics   → Prometheus
+Traces    → Jaeger
+─────────────────────────
+          ↓
+       Grafana
+          ↓
+        Alerts
+```
+
+### One-Line Interview Answer
+
+**Distributed Logging, Monitoring, and Tracing together form Observability, enabling teams to understand what happened (logs), what is happening (metrics), and where it happened (traces) across distributed microservice systems.**
+
+
+-----------------------------------------------------------------
+
+
+
+# How to Correlate Logs with Traces?
+
+In modern microservices, **log correlation** means linking logs from different services to the same request using a **Trace ID** (or Correlation ID).
+
+Without correlation:
+
+```text
+Order Service Log
+Payment Service Log
+Inventory Service Log
+Notification Service Log
+```
+
+You don't know which logs belong to the same request.
+
+***
+
+## Problem Example
+
+User places an order.
+
+```text
+Client
+  ↓
+API Gateway
+  ↓
+Order Service
+  ↓
+Payment Service
+  ↓
+Inventory Service
+```
+
+If logs look like:
+
+```text
+Order Created
+Payment Successful
+Stock Updated
+```
+
+it's difficult to determine which request generated those logs.
+
+***
+
+## Solution: Trace ID
+
+Generate a unique Trace ID at the entry point.
+
+Example:
+
+```text
+TraceID = 7b8c9d123
+```
+
+Pass this ID to every service.
+
+```text
+Gateway
+   ↓
+TraceID=7b8c9d123
+
+Order Service
+   ↓
+TraceID=7b8c9d123
+
+Payment Service
+   ↓
+TraceID=7b8c9d123
+
+Inventory Service
+   ↓
+TraceID=7b8c9d123
+```
+
+***
+
+## Correlated Logs
+
+```text
+[TraceID=7b8c9d123]
+Order Created
+
+[TraceID=7b8c9d123]
+Payment Successful
+
+[TraceID=7b8c9d123]
+Inventory Updated
+```
+
+Now searching by:
+
+```text
+7b8c9d123
+```
+
+shows the complete request journey.
+
+***
+
+# Trace ID vs Span ID
+
+A distributed trace consists of:
+
+```text
+Trace
+   ├── Span 1
+   ├── Span 2
+   ├── Span 3
+```
+
+### Trace ID
+
+Represents the entire request.
+
+```text
+TraceID: abc123
+```
+
+### Span ID
+
+Represents a single operation.
+
+```text
+Order Span
+Payment Span
+Inventory Span
+```
+
+Example:
+
+```text
+TraceID = abc123
+SpanID  = span001
+```
+
+***
+
+# OpenTelemetry Example
+
+OpenTelemetry automatically propagates trace context between services.
+
+Log output:
+
+```text
+trace_id=abc123
+span_id=xyz456
+
+Creating Order
+```
+
+Every service receives the same trace id.
+
+***
+
+# Spring Boot Example
+
+With Micrometer + OpenTelemetry:
+
+```xml
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-otel</artifactId>
+</dependency>
+```
+
+Configure log pattern:
+
+```properties
+logging.pattern.level=
+%5p [${spring.application.name:},%X{traceId},%X{spanId}]
+```
+
+Logs:
+
+```text
+INFO [order-service,
+a1b2c3d4,
+e5f6g7h8]
+Order Created
+```
+
+***
+
+# MDC (Mapped Diagnostic Context)
+
+A common approach is storing Trace IDs in MDC.
+
+```java
+import org.slf4j.MDC;
+
+MDC.put("traceId", traceId);
+```
+
+Logging pattern:
+
+```xml
+%d %-5level [%X{traceId}] %msg%n
+```
+
+Output:
+
+```text
+INFO [abc123] Order Created
+```
+
+Clear after request:
+
+```java
+MDC.clear();
+```
+
+***
+
+# ELK + Trace Correlation
+
+Store logs in Elasticsearch.
+
+Example document:
+
+```json
+{
+  "traceId": "abc123",
+  "service": "payment-service",
+  "message": "Payment Completed"
+}
+```
+
+Search:
+
+```text
+traceId:abc123
+```
+
+Result:
+
+```text
+Gateway Logs
+Order Logs
+Payment Logs
+Inventory Logs
+```
+
+***
+
+# Correlating Logs with Jaeger
+
+Jaeger stores traces:
+
+```text
+TraceID: abc123
+```
+
+Logs contain:
+
+```text
+TraceID: abc123
+```
+
+Workflow:
+
+```text
+Error Found
+     ↓
+Open Log
+     ↓
+Copy Trace ID
+     ↓
+Search in Jaeger
+     ↓
+See Complete Request Flow
+```
+
+***
+
+# Real Production Architecture
+
+```text
+Microservices
+      ↓
+OpenTelemetry SDK
+      ↓
+ ┌─────────────┬─────────────┐
+ │             │             │
+Logs        Metrics       Traces
+ │             │             │
+ELK       Prometheus     Jaeger
+ │             │             │
+ └─────── Grafana ───────────┘
+```
+
+***
+
+# Best Practices
+
+### ✅ Use Structured Logging
+
+```json
+{
+  "traceId":"abc123",
+  "service":"order-service",
+  "orderId":"1001"
+}
+```
+
+### ✅ Generate Trace ID at Gateway
+
+```text
+API Gateway
+    ↓
+Create Trace ID
+```
+
+### ✅ Propagate Across Services
+
+Using:
+
+* HTTP Headers
+* Kafka Headers
+* RabbitMQ Headers
+* OpenTelemetry Context
+
+### ✅ Log Trace ID Everywhere
+
+Every log entry should contain:
+
+```text
+timestamp
+traceId
+spanId
+service
+message
+```
+
+### ✅ Use OpenTelemetry
+
+Current industry standard for:
+
+* Logs
+* Metrics
+* Traces
+
+***
+
+# Interview Answer
+
+**How do you correlate logs with traces?**
+
+> Generate a unique Trace ID at the start of a request, propagate it across all microservices, include the Trace ID in every log entry (typically via MDC/OpenTelemetry), and store logs and traces in centralized systems such as ELK and Jaeger. Using the common Trace ID, we can connect logs and distributed traces to view the complete end-to-end request flow.
+
+
+---------------------------------------------------------------------
+
+
+## 1. Add Trace ID to Logs Using MDC (SLF4J + Logback)
+
+### Filter to Generate/Read Trace ID
+
+```java
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.UUID;
+
+@Component
+public class TraceIdFilter extends OncePerRequestFilter {
+
+    public static final String TRACE_ID = "traceId";
+
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String traceId = request.getHeader("X-Trace-Id");
+
+        if (traceId == null || traceId.isBlank()) {
+            traceId = UUID.randomUUID().toString();
+        }
+
+        MDC.put(TRACE_ID, traceId);
+
+        response.setHeader("X-Trace-Id", traceId);
+
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            MDC.clear();
+        }
+    }
+}
+```
+
+***
+
+### Configure Logback
+
+`logback-spring.xml`
+
+```xml
+<configuration>
+
+    <appender name="CONSOLE"
+              class="ch.qos.logback.core.ConsoleAppender">
+
+        <encoder>
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss}
+                [%thread]
+                %-5level
+                [TraceId:%X{traceId}]
+                %logger{36} - %msg%n
+            </pattern>
+        </encoder>
+
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
+```
+
+***
+
+### Service Log
+
+```java
+@Service
+public class OrderService {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(OrderService.class);
+
+    public void createOrder() {
+
+        log.info("Creating Order");
+
+        log.info("Order Created Successfully");
+    }
+}
+```
+
+***
+
+### Output
+
+```text
+2026-07-06 10:20:15
+INFO
+[TraceId:8c9b1234-a12b-45cd]
+OrderService - Creating Order
+
+2026-07-06 10:20:15
+INFO
+[TraceId:8c9b1234-a12b-45cd]
+OrderService - Order Created Successfully
+```
+
+All logs for the request contain the same Trace ID.
+
+***
+
+# 2. Propagate Trace ID in HTTP Headers
+
+Suppose:
+
+```text
+API Gateway
+    ↓
+Order Service
+    ↓
+Payment Service
+```
+
+The same Trace ID must travel through all HTTP calls.
+
+***
+
+## Incoming Header
+
+```http
+GET /orders
+
+X-Trace-Id: abc123
+```
+
+***
+
+## Pass Header Using RestTemplate
+
+### Configuration
+
+```java
+@Bean
+public RestTemplate restTemplate() {
+    return new RestTemplate();
+}
+```
+
+***
+
+### Propagate Trace ID
+
+```java
+import org.slf4j.MDC;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+public class OrderService {
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    public void processOrder() {
+
+        String traceId = MDC.get("traceId");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Trace-Id", traceId);
+
+        HttpEntity<String> entity =
+                new HttpEntity<>(headers);
+
+        restTemplate.exchange(
+                "http://payment-service/pay",
+                HttpMethod.POST,
+                entity,
+                String.class);
+    }
+}
+```
+
+***
+
+## Receiving Service
+
+```java
+@RestController
+public class PaymentController {
+
+    @PostMapping("/pay")
+    public String pay(
+            @RequestHeader("X-Trace-Id")
+            String traceId) {
+
+        MDC.put("traceId", traceId);
+
+        log.info("Payment Started");
+
+        return "SUCCESS";
+    }
+}
+```
+
+***
+
+# Using Feign Client (Recommended)
+
+### Request Interceptor
+
+```java
+@Configuration
+public class FeignTraceConfig {
+
+    @Bean
+    public RequestInterceptor requestInterceptor() {
+
+        return template -> {
+
+            String traceId =
+                    MDC.get("traceId");
+
+            if(traceId != null) {
+                template.header(
+                    "X-Trace-Id",
+                    traceId);
+            }
+        };
+    }
+}
+```
+
+Every Feign request automatically carries:
+
+```http
+X-Trace-Id: abc123
+```
+
+***
+
+# Using OpenTelemetry (Industry Standard)
+
+When OpenTelemetry is configured, you typically don't manually manage headers.
+
+OpenTelemetry automatically propagates:
+
+```http
+traceparent:
+00-4bf92f3577b34da6
+a3ce929d0e0e4736
+-00f067aa0ba902b7-01
+```
+
+Flow:
+
+```text
+Gateway
+   ↓
+Order Service
+   ↓
+Payment Service
+   ↓
+Inventory Service
+```
+
+OpenTelemetry automatically:
+
+* Creates Trace ID
+* Creates Span ID
+* Propagates headers
+* Correlates logs and traces
+
+***
+
+## Interview Answer
+
+**How do you add Trace ID to logs?**
+
+> Store the Trace ID in MDC (`MDC.put("traceId", traceId)`), configure Logback to print `%X{traceId}`, and clear MDC after request completion.
+
+**How do you propagate Trace ID in HTTP headers?**
+
+> Read or generate the Trace ID at the gateway/service entry point, add it to headers such as `X-Trace-Id`, and forward the same header in all downstream service calls using RestTemplate, WebClient, Feign, or OpenTelemetry.
+
+
+----------------------------------------------------------------------------
+
+# How to Propagate Trace ID in Kafka?
+
+Unlike HTTP, Kafka does not have request headers like `X-Trace-Id`. Instead, Kafka messages support **record headers**, which are the recommended way to propagate Trace IDs between producers and consumers.
+
+***
+
+## Architecture
+
+```text
+Order Service
+     │
+     │ TraceID=abc123
+     ▼
+Kafka Producer
+     ▼
+Kafka Topic
+     ▼
+Kafka Consumer
+     ▼
+Payment Service
+
+TraceID=abc123
+```
+
+The same Trace ID travels with the Kafka message.
+
+***
+
+# 1. Kafka Producer: Add Trace ID to Message Header
+
+Suppose the Trace ID is stored in MDC.
+
+```java
+String traceId = MDC.get("traceId");
+```
+
+Create a Kafka record with headers:
+
+```java
+import org.apache.kafka.clients.producer.ProducerRecord;
+
+ProducerRecord<String, String> record =
+        new ProducerRecord<>(
+                "order-topic",
+                "Order Created");
+
+record.headers().add(
+        "traceId",
+        traceId.getBytes());
+
+kafkaTemplate.send(record);
+```
+
+***
+
+## Producer Example
+
+```java
+@Service
+public class OrderProducer {
+
+    @Autowired
+    private KafkaTemplate<String, String> kafkaTemplate;
+
+    public void publishOrder() {
+
+        String traceId = MDC.get("traceId");
+
+        ProducerRecord<String, String> record =
+                new ProducerRecord<>(
+                        "order-topic",
+                        "Order Created");
+
+        record.headers().add(
+                "traceId",
+                traceId.getBytes());
+
+        kafkaTemplate.send(record);
+    }
+}
+```
+
+***
+
+# 2. Kafka Consumer: Read Trace ID from Header
+
+Consumer receives the header and restores it into MDC.
+
+```java
+@KafkaListener(topics = "order-topic")
+public void consume(
+        ConsumerRecord<String, String> record) {
+
+    Header header =
+            record.headers().lastHeader("traceId");
+
+    String traceId =
+            new String(header.value());
+
+    MDC.put("traceId", traceId);
+
+    try {
+        log.info("Processing Order");
+    } finally {
+        MDC.clear();
+    }
+}
+```
+
+***
+
+## Output
+
+Producer logs:
+
+```text
+[TraceId:abc123]
+Order Published
+```
+
+Consumer logs:
+
+```text
+[TraceId:abc123]
+Processing Order
+```
+
+Now logs from both services can be correlated.
+
+***
+
+# 3. Generic Utility Method
+
+To avoid duplicate code:
+
+### Header Utility
+
+```java
+public class TraceUtil {
+
+    public static final String TRACE_ID =
+            "traceId";
+
+    public static String getTraceId(
+            ConsumerRecord<?, ?> record) {
+
+        Header header =
+            record.headers()
+                  .lastHeader(TRACE_ID);
+
+        if(header == null) {
+            return null;
+        }
+
+        return new String(header.value());
+    }
+}
+```
+
+Consumer:
+
+```java
+String traceId =
+        TraceUtil.getTraceId(record);
+
+MDC.put("traceId", traceId);
+```
+
+***
+
+# 4. End-to-End Flow
+
+```text
+Client
+   │
+   ▼
+Gateway
+   │
+   │ TraceID=abc123
+   ▼
+Order Service
+   │
+   │ Kafka Header
+   │ traceId=abc123
+   ▼
+Kafka Topic
+   ▼
+Payment Service
+   │
+   │ MDC.put(traceId)
+   ▼
+Logs
+
+[abc123] Payment Started
+```
+
+***
+
+# 5. Using OpenTelemetry with Kafka (Recommended)
+
+Modern systems typically use **OpenTelemetry**.
+
+OpenTelemetry automatically:
+
+* Creates Trace IDs
+* Creates Span IDs
+* Injects tracing context into Kafka headers
+* Extracts tracing context on the consumer side
+
+Producer:
+
+```java
+Span.current();
+```
+
+Consumer:
+
+```java
+Span.current();
+```
+
+OpenTelemetry handles propagation automatically.
+
+Architecture:
+
+```text
+Service A
+    ▼
+OpenTelemetry
+    ▼
+Kafka Headers
+    ▼
+OpenTelemetry
+    ▼
+Service B
+```
+
+You don't need to manually add:
+
+```text
+traceId
+spanId
+```
+
+to headers.
+
+***
+
+# Spring Kafka Interceptor Example
+
+### Producer Interceptor
+
+```java
+public class TraceProducerInterceptor
+        implements ProducerInterceptor<String, String> {
+
+    @Override
+    public ProducerRecord<String, String> onSend(
+            ProducerRecord<String, String> record) {
+
+        String traceId = MDC.get("traceId");
+
+        if(traceId != null) {
+            record.headers().add(
+                    "traceId",
+                    traceId.getBytes());
+        }
+
+        return record;
+    }
+}
+```
+
+This automatically adds Trace IDs to every message.
+
+***
+
+# Interview Answer
+
+**How do you propagate Trace ID in Kafka?**
+
+> Store the Trace ID in Kafka message headers on the producer side, read the header on the consumer side, and place it into MDC for logging. In production systems, OpenTelemetry is commonly used to automatically propagate tracing context through Kafka headers and correlate logs, metrics, and traces across services.
+
+------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
