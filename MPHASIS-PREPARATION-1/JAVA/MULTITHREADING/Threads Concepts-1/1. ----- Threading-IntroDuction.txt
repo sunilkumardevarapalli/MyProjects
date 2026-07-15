@@ -1,0 +1,144 @@
+\*\*In **Java**, a **Thread** is a lightweight sub-process that allows a program to perform **multiple tasks concurrently**.
+
+A thread represents a separate path of execution within a program. Every Java application has at least one thread called the 
+**main thread**.
+
+### Why Use Threads?
+
+Threads are useful when you want to:
+
+* Run tasks in the background
+* Improve application responsiveness
+* Perform multiple operations simultaneously
+* Utilize multi-core processors efficiently
+
+### Real-Life Example
+
+Think of a web browser:
+
+* One thread loads the webpage.
+* Another thread downloads images.
+* Another thread responds to user clicks.
+
+All these tasks happen at the same time without freezing the browser.
+
+***
+
+## Creating a Thread in Java
+
+### 1. By Extending `Thread` Class
+
+```java
+class MyThread extends Thread {
+    public void run() {
+        System.out.println("Thread is running...");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        MyThread t1 = new MyThread();
+        t1.start();   // Starts a new thread
+    }
+}
+```
+
+### 2. By Implementing `Runnable` Interface (Recommended)
+
+```java
+class MyTask implements Runnable {
+    public void run() {
+        System.out.println("Task is running...");
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Thread t1 = new Thread(new MyTask());
+        t1.start();
+    }
+}
+```
+
+***
+
+## Important Methods
+
+```java
+start();   // Starts a thread
+run();     // Contains thread code
+sleep();   // Pauses thread for a period
+join();    // Waits for thread to finish
+isAlive(); // Checks if thread is running
+```
+
+Example:
+
+```java
+Thread t = new Thread(() -> {
+    System.out.println("Hello from thread");
+});
+
+t.start();
+t.join(); // Main thread waits
+```
+
+***
+
+## Thread Life Cycle
+
+```text
+NEW
+ ↓
+RUNNABLE
+ ↓
+RUNNING
+ ↓
+WAITING / BLOCKED
+ ↓
+TERMINATED
+```
+
+* **NEW**: Thread object created.
+* **RUNNABLE**: Ready to run.
+* **RUNNING**: Executing.
+* **WAITING/BLOCKED**: Waiting for a resource or event.
+* **TERMINATED**: Execution completed.
+
+***
+
+## Example with Multiple Threads
+
+```java
+class Worker extends Thread {
+    public void run() {
+        for(int i = 1; i <= 5; i++) {
+            System.out.println(
+                Thread.currentThread().getName() + " : " + i
+            );
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Worker t1 = new Worker();
+        Worker t2 = new Worker();
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+Output may vary because both threads execute concurrently.
+
+***
+
+### Interview Definition
+
+> **A Thread in Java is the smallest unit of execution within a process.
+ It enables concurrent execution of multiple tasks while sharing the same memory and resources of the process.**
+
+**Tip:** In modern Java applications, using **`ExecutorService`** 
+is generally preferred over creating threads directly because it provides better thread management and scalability.

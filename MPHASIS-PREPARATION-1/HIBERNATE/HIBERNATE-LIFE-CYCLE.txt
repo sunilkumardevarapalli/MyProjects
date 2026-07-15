@@ -1,0 +1,180 @@
+The **Hibernate Lifecycle** describes the different states an entity goes through from creation to deletion.
+
+## 1. Transient State
+
+* Object is created using `new`.
+* Not associated with Hibernate Session.
+* Not stored in the database.
+
+
+Employee emp = new Employee();
+emp.setName("John");
+```
+
+**Characteristics:**
+
+* No database row.
+* No Session association.
+
+---
+
+## 2. Persistent State
+
+* Entity is associated with a Hibernate Session.
+* Changes are automatically tracked (**dirty checking**).
+* On transaction commit, changes are synchronized with the database.
+
+
+Session session = sessionFactory.openSession();
+Transaction tx = session.beginTransaction();
+
+Employee emp = new Employee();
+emp.setName("John");
+
+session.save(emp); // Persistent state
+
+tx.commit();
+session.close();
+```
+
+**Characteristics:**
+
+* Managed by Hibernate.
+* Database row exists.
+* Changes are automatically saved.
+
+---
+
+## 3. Detached State
+
+* Entity was persistent, but Session is closed or entity is evicted.
+* Changes are not tracked automatically.
+
+
+Session session = sessionFactory.openSession();
+Employee emp = session.get(Employee.class, 1);
+
+session.close(); // emp becomes detached
+
+emp.setName("Mike"); // Hibernate won't track this
+```
+
+### Reattach Detached Entity
+
+
+Session session2 = sessionFactory.openSession();
+Transaction tx = session2.beginTransaction();
+
+session2.merge(emp);
+
+tx.commit();
+session2.close();
+```
+
+---
+
+## 4. Removed State
+
+* Entity is marked for deletion.
+* Deleted from database when transaction commits.
+
+
+Session session = sessionFactory.openSession();
+Transaction tx = session.beginTransaction();
+
+Employee emp = session.get(Employee.class, 1);
+
+session.delete(emp);
+
+tx.commit();
+session.close();
+```
+
+---
+
+## Entity Lifecycle Diagram
+
+```
+            new Employee()
+                  |
+                  v
+             TRANSIENT
+                  |
+          session.save()
+                  |
+                  v
+             PERSISTENT
+                  |
+          session.close()
+                  |
+                  v
+             DETACHED
+                  |
+           session.merge()
+                  |
+                  v
+             PERSISTENT
+                  |
+          session.delete()
+                  |
+                  v
+              REMOVED
+```
+
+---
+
+## JPA Entity Lifecycle Callbacks
+
+Hibernate supports lifecycle callback annotations:
+
+
+@Entity
+public class Employee {
+
+    @PrePersist
+    public void beforeInsert() {
+        System.out.println("Before Insert");
+    }
+
+    @PostPersist
+    public void afterInsert() {
+        System.out.println("After Insert");
+    }
+
+    @PreUpdate
+    public void beforeUpdate() {
+        System.out.println("Before Update");
+    }
+
+    @PostUpdate
+    public void afterUpdate() {
+        System.out.println("After Update");
+    }
+
+    @PreRemove
+    public void beforeDelete() {
+        System.out.println("Before Delete");
+    }
+
+    @PostRemove
+    public void afterDelete() {
+        System.out.println("After Delete");
+    }
+
+    @PostLoad
+    public void afterLoad() {
+        System.out.println("Entity Loaded");
+    }
+}
+```
+
+## Interview Answer
+
+> Hibernate entities have four states:
+>
+> 1. **Transient** – object created but not associated with a Session.
+> 2. **Persistent** – managed by Hibernate Session and synchronized with the database.
+> 3. **Detached** – Session closed or entity evicted, so changes are not tracked.
+> 4. **Removed** – entity marked for deletion and deleted on transaction commit.
+>
+> Hibernate uses dirty checking to automatically persist changes made to entities in the persistent state.

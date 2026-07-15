@@ -1,0 +1,294 @@
+## Semaphore(2) Example with 5 Threads using Runnable
+
+### What is Semaphore?
+
+A `Semaphore` controls how many threads can access a resource simultaneously.
+
+```java
+Semaphore semaphore = new Semaphore(2);
+```
+
+Means:
+
+```text
+Only 2 threads can enter at a time.
+```
+
+Other threads must wait until a permit is released.
+
+***
+
+## Real-Time Example
+
+Imagine:
+
+```text
+ATM Machines Available = 2
+
+Customers = 5
+```
+
+Only 2 customers can use ATMs simultaneously.
+
+When one customer finishes:
+
+```java
+semaphore.release();
+```
+
+A waiting customer gets access.
+
+***
+
+## Complete Code
+
+```java
+import java.util.concurrent.Semaphore;
+
+class ATMTask implements Runnable {
+
+    private Semaphore semaphore;
+
+    public ATMTask(Semaphore semaphore) {
+        this.semaphore = semaphore;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " waiting for permit");
+
+            semaphore.acquire();
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " acquired permit");
+
+            Thread.sleep(5000);
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " completed transaction");
+
+        } catch (InterruptedException e) {
+
+            e.printStackTrace();
+
+        } finally {
+
+            semaphore.release();
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " released permit");
+        }
+    }
+}
+```
+
+### Main Class
+
+```java
+import java.util.concurrent.Semaphore;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        Semaphore semaphore =
+                new Semaphore(2);
+
+        for(int i = 1; i <= 5; i++) {
+
+            Thread t =
+                    new Thread(
+                            new ATMTask(semaphore));
+
+            t.setName("Customer-" + i);
+
+            t.start();
+        }
+    }
+}
+```
+
+***
+
+## Internal Execution
+
+Semaphore:
+
+```java
+new Semaphore(2)
+```
+
+Available permits:
+
+```text
+2
+```
+
+### Thread Creation
+
+```text
+Customer-1
+Customer-2
+Customer-3
+Customer-4
+Customer-5
+```
+
+***
+
+### Step 1
+
+```text
+Customer-1 acquires Permit-1
+Customer-2 acquires Permit-2
+```
+
+Available permits:
+
+```text
+0
+```
+
+Waiting:
+
+```text
+Customer-3
+Customer-4
+Customer-5
+```
+
+***
+
+### Step 2
+
+Customer-1 finishes
+
+```java
+semaphore.release();
+```
+
+Available permits:
+
+```text
+1
+```
+
+Customer-3 enters.
+
+***
+
+### Step 3
+
+Customer-2 finishes
+
+```java
+semaphore.release();
+```
+
+Customer-4 enters.
+
+***
+
+### Step 4
+
+Customer-3 finishes
+
+Customer-5 enters.
+
+***
+
+## Possible Output
+
+```text
+Customer-1 waiting for permit
+Customer-2 waiting for permit
+Customer-3 waiting for permit
+Customer-4 waiting for permit
+Customer-5 waiting for permit
+
+Customer-1 acquired permit
+Customer-2 acquired permit
+
+Customer-1 completed transaction
+Customer-1 released permit
+
+Customer-3 acquired permit
+
+Customer-2 completed transaction
+Customer-2 released permit
+
+Customer-4 acquired permit
+
+Customer-3 completed transaction
+Customer-3 released permit
+
+Customer-5 acquired permit
+
+Customer-4 completed transaction
+Customer-4 released permit
+
+Customer-5 completed transaction
+Customer-5 released permit
+```
+
+***
+
+## Why Use `release()`?
+
+When a thread finishes using the shared resource:
+
+```java
+semaphore.release();
+```
+
+returns the permit back to the semaphore.
+
+Without `release()`:
+
+```text
+Permits become 0
+```
+
+All remaining threads wait forever.
+
+***
+
+## Interview Question
+
+### acquire()
+
+```java
+semaphore.acquire();
+```
+
+* Takes a permit
+* If no permit available → waits
+
+***
+
+### release()
+
+```java
+semaphore.release();
+```
+
+* Returns permit
+* Wakes waiting thread if present
+
+***
+
+## Interview Answer
+
+> `Semaphore(2)` allows only two threads to access a shared resource simultaneously. 
+When a thread calls `acquire()`, it consumes a permit. If no permits are available, the thread waits. After completing its work, 
+the thread must call `release()` to return the permit so that another waiting thread can proceed. 
+Semaphores are commonly used for connection pools, ATM systems, printer access, rate limiting, and controlling concurrent access
+ to limited resources.

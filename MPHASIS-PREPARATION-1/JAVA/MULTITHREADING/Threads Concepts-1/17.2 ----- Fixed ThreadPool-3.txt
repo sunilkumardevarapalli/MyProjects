@@ -1,0 +1,447 @@
+# FixedThreadPool(3) Example
+
+Suppose:
+
+```java
+ExecutorService ex =
+        Executors.newFixedThreadPool(3);
+```
+
+Customer List:
+
+```text
+Sunil
+Ravi
+Kiran
+Mahesh
+Suresh
+```
+
+Each email takes:
+
+```java
+Thread.sleep(5000);
+```
+
+to simulate real-time email processing.
+
+***
+
+# Internal Thread Pool
+
+When the pool is created:
+
+```text
+pool-1-thread-1
+pool-1-thread-2
+pool-1-thread-3
+```
+
+Three worker threads are available.
+
+***
+
+# Queue Behavior
+
+You submit 5 tasks:
+
+```java
+for(Customer customer : customers) {
+    ex.execute(new TriggerEmailPolicy(customer));
+}
+```
+
+Initially:
+
+```text
+Task-1 -> Sunil
+Task-2 -> Ravi
+Task-3 -> Kiran
+Task-4 -> Mahesh
+Task-5 -> Suresh
+```
+
+***
+
+## First Round
+
+Available threads:
+
+```text
+Thread-1
+Thread-2
+Thread-3
+```
+
+Assignments:
+
+```text
+Thread-1 -> Sunil
+Thread-2 -> Ravi
+Thread-3 -> Kiran
+```
+
+Queue:
+
+```text
+Mahesh
+Suresh
+```
+
+***
+
+## After 5 Seconds
+
+Suppose Thread-1 finishes first.
+
+```text
+Thread-1 -> Mahesh
+```
+
+Queue:
+
+```text
+Suresh
+```
+
+***
+
+## Then
+
+Suppose Thread-2 finishes.
+
+```text
+Thread-2 -> Suresh
+```
+
+Queue:
+
+```text
+Empty
+```
+
+***
+
+# Visual Flow
+
+```text
+Time = 0
+
+Thread-1 --> Sunil
+Thread-2 --> Ravi
+Thread-3 --> Kiran
+
+Queue:
+Mahesh
+Suresh
+```
+
+```text
+Time = 5 sec
+
+Thread-1 --> Mahesh
+Thread-2 --> Suresh
+Thread-3 --> Free
+
+Queue:
+Empty
+```
+
+```text
+Time = 10 sec
+
+All Tasks Completed
+```
+
+***
+
+# Possible Output
+
+```text
+pool-1-thread-1 Started Email For Sunil
+pool-1-thread-2 Started Email For Ravi
+pool-1-thread-3 Started Email For Kiran
+
+pool-1-thread-1 Email Sent To Sunil
+pool-1-thread-2 Email Sent To Ravi
+pool-1-thread-3 Email Sent To Kiran
+
+pool-1-thread-1 Started Email For Mahesh
+pool-1-thread-2 Started Email For Suresh
+
+pool-1-thread-1 Email Sent To Mahesh
+pool-1-thread-2 Email Sent To Suresh
+```
+
+Output order may vary because thread scheduling is handled by the JVM and OS.
+
+***
+
+# How Queue Works Internally
+
+For a FixedThreadPool:
+
+```java
+Executors.newFixedThreadPool(3)
+```
+
+Internally:
+
+```text
+Pool Size = 3
+
+Worker Threads
+--------------
+T1
+T2
+T3
+```
+
+Tasks:
+
+```text
+Task1
+Task2
+Task3
+Task4
+Task5
+Task6
+Task7
+...
+```
+
+Execution:
+
+```text
+T1 -> Task1
+T2 -> Task2
+T3 -> Task3
+```
+
+Remaining tasks are stored in a queue:
+
+```text
+Queue
+
+Task4
+Task5
+Task6
+Task7
+```
+
+Whenever a worker becomes free:
+
+```text
+Worker Thread
+      ↓
+Take First Task From Queue
+      ↓
+Execute
+```
+
+This continues until:
+
+```text
+Queue Empty
+AND
+All Threads Finish
+```
+
+***
+
+# Exception Handling with execute()
+
+Consider:
+
+```java
+public void run() {
+
+    System.out.println(
+            Thread.currentThread().getName());
+
+    int result = 10 / 0;
+}
+```
+
+Submission:
+
+```java
+ex.execute(task);
+```
+
+Output:
+
+```text
+pool-1-thread-1
+
+Exception in thread
+java.lang.ArithmeticException: / by zero
+```
+
+Exception is printed immediately.
+
+***
+
+# Better Exception Handling Inside Runnable
+
+```java
+public void run() {
+
+    try {
+
+        System.out.println(
+                Thread.currentThread().getName()
+                + " Processing Customer");
+
+        int result = 10 / 0;
+
+    } catch(Exception e) {
+
+        System.out.println(
+                "Error Processing Customer : "
+                + e.getMessage());
+    }
+}
+```
+
+Output:
+
+```text
+Error Processing Customer : / by zero
+```
+
+Pool continues processing remaining customers.
+
+***
+
+# Exception Handling with submit()
+
+Example:
+
+```java
+Future<?> future =
+        ex.submit(task);
+```
+
+Task:
+
+```java
+Runnable task = () -> {
+
+    int x = 10 / 0;
+};
+```
+
+No exception appears immediately.
+
+ExecutorService captures it.
+
+To see it:
+
+```java
+try {
+
+    future.get();
+
+} catch(Exception e) {
+
+    System.out.println(e);
+}
+```
+
+Output:
+
+```text
+java.util.concurrent.ExecutionException
+```
+
+Root Cause:
+
+```text
+java.lang.ArithmeticException: / by zero
+```
+
+***
+
+# Real-Time Customer Email Example with Exception Handling
+
+```java
+public class TriggerEmailPolicy
+        implements Runnable {
+
+    private Customer customer;
+
+    public TriggerEmailPolicy(Customer customer) {
+        this.customer = customer;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " Sending Email To "
+                    + customer.getCustomerName());
+
+            Thread.sleep(5000);
+
+            if(customer.getCustomerId() == 103) {
+                throw new RuntimeException(
+                        "Invalid Email Address");
+            }
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " Email Sent To "
+                    + customer.getCustomerName());
+
+        } catch(Exception e) {
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " Failed For "
+                    + customer.getCustomerName()
+                    + " : "
+                    + e.getMessage());
+        }
+    }
+}
+```
+
+Possible Output:
+
+```text
+pool-1-thread-1 Email Sent To Sunil
+pool-1-thread-2 Email Sent To Ravi
+
+pool-1-thread-3 Failed For Kiran :
+Invalid Email Address
+
+pool-1-thread-1 Email Sent To Mahesh
+pool-1-thread-2 Email Sent To Suresh
+```
+
+Notice:
+
+```text
+Kiran Failed
+```
+
+but
+
+```text
+Mahesh
+Suresh
+```
+
+still get processed.
+
+The thread pool does not stop because one task fails.
+
+***
+
+# Interview Answer
+
+For `newFixedThreadPool(3)`, only 3 worker threads are created. If more than 3 tasks are submitted, the extra tasks are stored in an internal queue. Whenever a worker thread finishes its current task, it picks the next task from the queue. Exception handling should be done inside the task (`Runnable`/`Callable`) or monitored through `Future` when using `submit()`. This allows the thread pool to continue processing other tasks even if one task fails.

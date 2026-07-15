@@ -1,0 +1,511 @@
+# 1. Using `tryLock()` to Avoid Deadlock
+
+`ReentrantLock` provides:
+
+```java
+tryLock()
+```
+
+Instead of waiting forever, a thread tries to get the lock.
+
+If the lock is unavailable:
+
+```text
+Don't wait forever
+Release acquired locks
+Retry later
+```
+
+This avoids deadlock.
+
+## Example
+
+```java
+import java.util.concurrent.locks.ReentrantLock;
+
+public class DeadLockAvoidExample {
+
+    private static ReentrantLock lock1 =
+            new ReentrantLock();
+
+    private static ReentrantLock lock2 =
+            new ReentrantLock();
+
+    public static void main(String[] args) {
+
+        Thread t1 = new Thread(() -> {
+
+            while (true) {
+
+                boolean gotLock1 = lock1.tryLock();
+
+                if (gotLock1) {
+
+                    try {
+
+                        System.out.println(
+                                "T1 acquired Lock1");
+
+                        boolean gotLock2 =
+                                lock2.tryLock();
+
+                        if (gotLock2) {
+
+                            try {
+
+                                System.out.println(
+                                        "T1 acquired Lock2");
+
+                                System.out.println(
+                                        "T1 completed work");
+
+                                break;
+
+                            } finally {
+                                lock2.unlock();
+                            }
+                        }
+
+                    } finally {
+                        lock1.unlock();
+                    }
+                }
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            while (true) {
+
+                boolean gotLock2 = lock2.tryLock();
+
+                if (gotLock2) {
+
+                    try {
+
+                        System.out.println(
+                                "T2 acquired Lock2");
+
+                        boolean gotLock1 =
+                                lock1.tryLock();
+
+                        if (gotLock1) {
+
+                            try {
+
+                                System.out.println(
+                                        "T2 acquired Lock1");
+
+                                System.out.println(
+                                        "T2 completed work");
+
+                                break;
+
+                            } finally {
+                                lock1.unlock();
+                            }
+                        }
+
+                    } finally {
+                        lock2.unlock();
+                    }
+                }
+            }
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+### What Happens?
+
+Suppose:
+
+```text
+T1 got Lock1
+T2 got Lock2
+```
+
+Now:
+
+```text
+T1 tries Lock2 → Failed
+T1 releases Lock1
+
+T2 tries Lock1 → Failed
+T2 releases Lock2
+```
+
+Both retry again.
+
+Eventually:
+
+```text
+T1 gets Lock1 and Lock2
+```
+
+or
+
+```text
+T2 gets Lock2 and Lock1
+```
+
+Work completes.
+
+No deadlock.
+
+***
+
+# 2. Circular Wait Explained
+
+Deadlock mainly occurs because of **Circular Wait**.
+
+## Example
+
+### Thread-1
+
+```text
+Holds Lock-A
+Waiting for Lock-B
+```
+
+### Thread-2
+
+```text
+Holds Lock-B
+Waiting for Lock-A
+```
+
+Diagram:
+
+```text
+            Waiting For
+Thread-1  -----------------> Lock-B
+
+   ^                             |
+   |                             |
+   |                             v
+
+Lock-A <------------------ Thread-2
+
+            Waiting For
+```
+
+Another visualization:
+
+```text
+Thread-1
+---------
+Lock-A Acquired
+      |
+      v
+Waiting For Lock-B
+
+Thread-2
+---------
+Lock-B Acquired
+      |
+      v
+Waiting For Lock-A
+```
+
+Result:
+
+```text
+Thread-1 waits forever
+Thread-2 waits forever
+```
+
+This cycle is called:
+
+```text
+Circular Wait
+```
+
+***
+
+# Real Banking Example
+
+Accounts:
+
+```text
+Account-A
+Account-B
+```
+
+### Transfer Thread-1
+
+```text
+Lock Account-A
+Wait Account-B
+```
+
+### Transfer Thread-2
+
+```text
+Lock Account-B
+Wait Account-A
+```
+
+Diagram:
+
+```text
+Thread-1
+   |
+   v
+Account-A
+   |
+   v
+Account-B
+
+Thread-2
+   |
+   v
+Account-B
+   |
+   v
+Account-A
+```
+
+Circular dependency created.
+
+Deadlock occurs.
+
+***
+
+# 3. How Does ReentrantLock Help Prevent Deadlock?
+
+Important:
+
+> ReentrantLock does NOT automatically prevent deadlock.
+
+It provides tools that help you avoid deadlock.
+
+***
+
+## Feature 1: tryLock()
+
+```java
+lock.tryLock();
+```
+
+Instead of:
+
+```text
+Wait forever
+```
+
+it says:
+
+```text
+Try once
+Success → Proceed
+Failure → Move On
+```
+
+This breaks circular waiting.
+
+***
+
+## Feature 2: tryLock with Timeout
+
+```java
+lock.tryLock(
+        5,
+        TimeUnit.SECONDS);
+```
+
+Example:
+
+```java
+if(lock.tryLock(5,
+        TimeUnit.SECONDS)) {
+
+    try {
+
+        // business logic
+
+    } finally {
+
+        lock.unlock();
+    }
+}
+```
+
+If lock not acquired within:
+
+```text
+5 seconds
+```
+
+thread exits safely.
+
+No infinite waiting.
+
+***
+
+## Feature 3: Interruptible Locks
+
+```java
+lock.lockInterruptibly();
+```
+
+Waiting thread can be interrupted.
+
+Example:
+
+```java
+Thread.sleep()
+```
+
+like behavior but for locks.
+
+***
+
+# ReentrantLock vs synchronized
+
+## synchronized
+
+```java
+synchronized(lock) {
+
+}
+```
+
+Behavior:
+
+```text
+Acquire lock
+Wait forever if unavailable
+```
+
+No timeout.
+
+No interruption.
+
+No try mechanism.
+
+***
+
+## ReentrantLock
+
+```java
+ReentrantLock lock =
+        new ReentrantLock();
+```
+
+Provides:
+
+```java
+tryLock()
+```
+
+```java
+tryLock(timeout)
+```
+
+```java
+lockInterruptibly()
+```
+
+```java
+isLocked()
+```
+
+```java
+getHoldCount()
+```
+
+Much more control.
+
+***
+
+# Why is it Called ReentrantLock?
+
+Because:
+
+The same thread can acquire the same lock multiple times.
+
+Example:
+
+```java
+lock.lock();
+
+lock.lock();
+
+lock.lock();
+```
+
+Valid.
+
+Need matching unlocks:
+
+```java
+lock.unlock();
+lock.unlock();
+lock.unlock();
+```
+
+***
+
+## Example
+
+```java
+ReentrantLock lock =
+        new ReentrantLock();
+
+lock.lock();
+
+try {
+
+    method1();
+
+} finally {
+
+    lock.unlock();
+}
+```
+
+Inside:
+
+```java
+public void method1() {
+
+    lock.lock();
+
+    try {
+
+        System.out.println("Inside");
+
+    } finally {
+
+        lock.unlock();
+    }
+}
+```
+
+Same thread can re-enter the lock.
+
+No deadlock.
+
+That's why it's called:
+
+```text
+Reentrant Lock
+```
+
+***
+
+# Interview Answer
+
+> Deadlock occurs because of circular waiting, where Thread-1 holds Lock-A and waits for Lock-B while Thread-2 holds Lock-B and 
+waits for Lock-A. A common prevention technique is maintaining the same lock order. `ReentrantLock` 
+helps avoid deadlocks by providing `tryLock()`, timed lock acquisition, and interruptible locking. Using `tryLock()`, 
+a thread can attempt to acquire a lock and, if unsuccessful, release its current locks and retry later rather than waiting 
+indefinitely. This breaks the circular wait condition and helps avoid deadlocks.
+
+
+
+

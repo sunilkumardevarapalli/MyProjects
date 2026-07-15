@@ -1,0 +1,630 @@
+# Runnable vs Callable vs ExecutorService (Complete Interview Guide)
+
+## 1. What is Callable?
+
+`Callable` is an interface used to execute a task in a separate thread and **return a result**.
+
+Unlike `Runnable`, it can:
+
+* Return a value
+* Throw checked exceptions
+
+Introduced in Java 5 as part of the Executor Framework.
+
+### Method Signature
+
+```java
+public interface Callable<V> {
+    V call() throws Exception;
+}
+```
+
+* `V` = Return Type
+* `call()` = Business Logic
+
+***
+
+# Callable Example
+
+## Calculate Employee Salary
+
+### Callable Task
+
+```java
+import java.util.concurrent.Callable;
+
+class SalaryCalculator implements Callable<Double> {
+
+    @Override
+    public Double call() throws Exception {
+
+        System.out.println(
+                Thread.currentThread().getName()
+                + " Calculating Salary");
+
+        Thread.sleep(3000);
+
+        return 75000.0;
+    }
+}
+```
+
+***
+
+### Main Class
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Test {
+
+    public static void main(String[] args) throws Exception {
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(2);
+
+        SalaryCalculator task =
+                new SalaryCalculator();
+
+        Future<Double> future =
+                executor.submit(task);
+
+        System.out.println("Main Thread Working...");
+
+        Double salary = future.get();
+
+        System.out.println(
+                "Salary = " + salary);
+
+        executor.shutdown();
+    }
+}
+```
+
+### Output
+
+```text
+Main Thread Working...
+pool-1-thread-1 Calculating Salary
+Salary = 75000.0
+```
+
+***
+
+# What is Future?
+
+When a Callable is submitted:
+
+```java
+Future<Double> future =
+        executor.submit(task);
+```
+
+The result is not immediately available.
+
+Java returns a `Future`.
+
+Think of Future as:
+
+```text
+Promise of a future result
+```
+
+### Important Methods
+
+```java
+future.get();
+```
+
+Wait and get result.
+
+***
+
+```java
+future.isDone();
+```
+
+Check task completed?
+
+***
+
+```java
+future.cancel(true);
+```
+
+Cancel task.
+
+***
+
+# Real-Time Callable Examples
+
+### Banking
+
+```text
+Calculate Monthly Interest
+```
+
+Return:
+
+```text
+Amount
+```
+
+***
+
+### HR System
+
+```text
+Calculate Salary
+```
+
+Return:
+
+```text
+Salary
+```
+
+***
+
+### E-Commerce
+
+```text
+Fetch Product Details
+```
+
+Return:
+
+```text
+Product Object
+```
+
+***
+
+### Payment Gateway
+
+```text
+Process Payment
+```
+
+Return:
+
+```text
+Payment Response
+```
+
+***
+
+### Database Query
+
+```text
+Fetch Customer Details
+```
+
+Return:
+
+```text
+Customer Object
+```
+
+***
+
+# Runnable vs Callable
+
+## Runnable
+
+```java
+public interface Runnable {
+    void run();
+}
+```
+
+Method:
+
+```java
+run()
+```
+
+Return Type:
+
+```java
+void
+```
+
+No Result.
+
+***
+
+### Example
+
+```java
+Runnable task = () -> {
+
+    System.out.println(
+            "Sending Email");
+};
+```
+
+Used for:
+
+* Logging
+* Email Sending
+* Cache Refresh
+* File Cleanup
+* Notifications
+
+***
+
+## Callable
+
+```java
+public interface Callable<V> {
+    V call() throws Exception;
+}
+```
+
+Method:
+
+```java
+call()
+```
+
+Returns Value.
+
+***
+
+### Example
+
+```java
+Callable<Integer> task = () -> {
+
+    return 100;
+};
+```
+
+Used for:
+
+* Database Queries
+* Calculations
+* API Calls
+* Salary Processing
+* Payment Processing
+
+***
+
+# Difference Between Runnable and Callable
+
+| Feature            | Runnable      | Callable             |
+| ------------------ | ------------- | -------------------- |
+| Package            | java.lang     | java.util.concurrent |
+| Method             | run()         | call()               |
+| Return Value       | No            | Yes                  |
+| Checked Exceptions | No            | Yes                  |
+| Introduced         | Java 1.0      | Java 5               |
+| Result Retrieval   | Not Possible  | Through Future       |
+| Use Case           | Fire & Forget | Need Result          |
+
+***
+
+# What is ExecutorService?
+
+`ExecutorService` is a framework that manages thread creation, execution, reuse and termination.
+
+Instead of:
+
+```java
+Thread t1 = new Thread();
+Thread t2 = new Thread();
+Thread t3 = new Thread();
+```
+
+we use:
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(3);
+```
+
+***
+
+# Why ExecutorService?
+
+Without ExecutorService:
+
+```text
+Task-1 -> Create Thread
+Task-2 -> Create Thread
+Task-3 -> Create Thread
+Task-4 -> Create Thread
+Task-5 -> Create Thread
+```
+
+Problems:
+
+* Too many threads
+* More memory
+* More CPU
+* Context switching
+
+***
+
+With ExecutorService:
+
+```text
+Thread Pool
+-----------
+Thread-1
+Thread-2
+Thread-3
+```
+
+Threads are reused.
+
+***
+
+# How ExecutorService Manages Threads Internally?
+
+Suppose:
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(2);
+```
+
+Pool contains:
+
+```text
+Thread-1
+Thread-2
+```
+
+***
+
+You submit:
+
+```java
+Task-1
+Task-2
+Task-3
+Task-4
+Task-5
+```
+
+### Internal Working
+
+```text
+Thread-1 -> Task-1
+Thread-2 -> Task-2
+
+Task-3 -> Queue
+Task-4 -> Queue
+Task-5 -> Queue
+```
+
+When Thread-1 finishes:
+
+```text
+Thread-1 -> Task-3
+```
+
+When Thread-2 finishes:
+
+```text
+Thread-2 -> Task-4
+```
+
+No new threads are created.
+
+Existing threads are reused.
+
+***
+
+# Fixed Thread Pool Example
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(2);
+
+        for(int i=1;i<=5;i++) {
+
+            int task = i;
+
+            executor.submit(() -> {
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " Executing Task "
+                        + task);
+            });
+        }
+
+        executor.shutdown();
+    }
+}
+```
+
+### Possible Output
+
+```text
+pool-1-thread-1 Executing Task 1
+pool-1-thread-2 Executing Task 2
+pool-1-thread-1 Executing Task 3
+pool-1-thread-2 Executing Task 4
+pool-1-thread-1 Executing Task 5
+```
+
+***
+
+# ExecutorService Important Methods
+
+### submit()
+
+Submit Runnable or Callable.
+
+```java
+executor.submit(task);
+```
+
+***
+
+### execute()
+
+Execute Runnable.
+
+```java
+executor.execute(task);
+```
+
+No Future returned.
+
+***
+
+### shutdown()
+
+Stop accepting new tasks.
+
+```java
+executor.shutdown();
+```
+
+***
+
+### shutdownNow()
+
+Immediately stop tasks.
+
+```java
+executor.shutdownNow();
+```
+
+***
+
+### isShutdown()
+
+Check pool shutdown?
+
+```java
+executor.isShutdown();
+```
+
+***
+
+### isTerminated()
+
+Check all tasks completed?
+
+```java
+executor.isTerminated();
+```
+
+***
+
+# execute() vs submit()
+
+### execute()
+
+```java
+executor.execute(runnable);
+```
+
+* Runnable only
+* No Future
+* No result
+
+***
+
+### submit()
+
+```java
+executor.submit(callable);
+```
+
+* Runnable or Callable
+* Returns Future
+* Can retrieve result
+
+***
+
+# Interview Scenario
+
+### Email Sending
+
+```text
+Need Result? No
+```
+
+Use:
+
+```java
+Runnable
+```
+
+***
+
+### Salary Calculation
+
+```text
+Need Salary Amount?
+```
+
+Use:
+
+```java
+Callable
+```
+
+***
+
+### Database Query
+
+```text
+Need Customer Data?
+```
+
+Use:
+
+```java
+Callable
+```
+
+***
+
+### Logging
+
+```text
+Need Result? No
+```
+
+Use:
+
+```java
+Runnable
+```
+
+***
+
+# Most Asked Interview Question
+
+### Why use Callable if Runnable already exists?
+
+Answer:
+
+> Runnable can execute a task but cannot return a result or throw checked exceptions. Callable can return a value,
+ throw checked exceptions, and works with Future to retrieve the result asynchronously.
+
+***
+
+# 30-Second Interview Answer
+
+> Runnable is used when a task does not need to return a result, whereas Callable is used when a task must return a 
+value or throw checked exceptions. Callable tasks are submitted to an ExecutorService and return a Future object that can 
+later provide the result. ExecutorService manages a pool of worker threads, reuses them efficiently, queues incoming tasks, 
+reduces thread creation overhead, and improves application performance and scalability.

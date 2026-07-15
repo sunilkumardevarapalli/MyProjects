@@ -1,0 +1,366 @@
+# What is a Deadlock?
+
+A **deadlock** occurs when two or more threads are waiting forever for each other to release locks.
+
+As a result:
+
+```text
+Thread-1 waiting for Thread-2
+Thread-2 waiting for Thread-1
+```
+
+Neither thread can proceed.
+
+***
+
+# Deadlock Example with Two Threads
+
+## Scenario
+
+Two resources:
+
+```java
+Object lock1 = new Object();
+Object lock2 = new Object();
+```
+
+Thread-1:
+
+* Acquires lock1
+* Wants lock2
+
+Thread-2:
+
+* Acquires lock2
+* Wants lock1
+
+## Code
+
+```java
+public class DeadLockDemo {
+
+    private static final Object lock1 = new Object();
+    private static final Object lock2 = new Object();
+
+    public static void main(String[] args) {
+
+        Thread t1 = new Thread(() -> {
+
+            synchronized (lock1) {
+
+                System.out.println(
+                        "Thread-1 acquired lock1");
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                }
+
+                System.out.println(
+                        "Thread-1 waiting for lock2");
+
+                synchronized (lock2) {
+
+                    System.out.println(
+                            "Thread-1 acquired lock2");
+                }
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            synchronized (lock2) {
+
+                System.out.println(
+                        "Thread-2 acquired lock2");
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                }
+
+                System.out.println(
+                        "Thread-2 waiting for lock1");
+
+                synchronized (lock1) {
+
+                    System.out.println(
+                            "Thread-2 acquired lock1");
+                }
+            }
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+***
+
+## Possible Output
+
+```text
+Thread-1 acquired lock1
+Thread-2 acquired lock2
+
+Thread-1 waiting for lock2
+Thread-2 waiting for lock1
+```
+
+Program hangs forever.
+
+Deadlock occurred.
+
+***
+
+# Visual Representation
+
+```text
+Thread-1            Thread-2
+---------           ---------
+
+Lock1 Acquired      Lock2 Acquired
+
+Waiting Lock2       Waiting Lock1
+```
+
+Result:
+
+```text
+Thread-1 ←→ Thread-2
+
+Forever Waiting
+```
+
+***
+
+# Why Deadlock Happens?
+
+Four conditions exist:
+
+### 1. Mutual Exclusion
+
+Only one thread can hold a lock.
+
+### 2. Hold and Wait
+
+Thread holds one lock and waits for another.
+
+### 3. No Preemption
+
+Locks cannot be forcibly removed.
+
+### 4. Circular Wait
+
+Threads wait in a cycle.
+
+```text
+T1 → Lock2
+T2 → Lock1
+```
+
+***
+
+# How to Avoid Deadlock?
+
+## Maintain Same Lock Order
+
+This is the most common interview answer.
+
+### Rule
+
+Always acquire locks in the same order.
+
+For example:
+
+```text
+First lock1
+Then lock2
+```
+
+for all threads.
+
+***
+
+# Correct Code
+
+```java
+public class DeadLockAvoidDemo {
+
+    private static final Object lock1 = new Object();
+    private static final Object lock2 = new Object();
+
+    public static void main(String[] args) {
+
+        Thread t1 = new Thread(() -> {
+
+            synchronized (lock1) {
+
+                System.out.println(
+                        "Thread-1 acquired lock1");
+
+                synchronized (lock2) {
+
+                    System.out.println(
+                            "Thread-1 acquired lock2");
+                }
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            synchronized (lock1) {
+
+                System.out.println(
+                        "Thread-2 acquired lock1");
+
+                synchronized (lock2) {
+
+                    System.out.println(
+                            "Thread-2 acquired lock2");
+                }
+            }
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+***
+
+## Output
+
+```text
+Thread-1 acquired lock1
+Thread-1 acquired lock2
+
+Thread-2 acquired lock1
+Thread-2 acquired lock2
+```
+
+No deadlock.
+
+***
+
+# Real-Time Banking Example
+
+Suppose:
+
+```text
+Account-A
+Account-B
+```
+
+Thread-1:
+
+```text
+Transfer A → B
+```
+
+Thread-2:
+
+```text
+Transfer B → A
+```
+
+Wrong order:
+
+```text
+Thread-1
+Lock Account-A
+Wait Account-B
+
+Thread-2
+Lock Account-B
+Wait Account-A
+```
+
+Deadlock.
+
+***
+
+## Correct Approach
+
+Always lock accounts in a fixed order.
+
+Example:
+
+```text
+First smaller Account Id
+Then larger Account Id
+```
+
+Both threads follow the same order.
+
+No deadlock.
+
+***
+
+# Other Ways to Avoid Deadlock
+
+### 1. Lock Ordering ✅ Best Practice
+
+```text
+Always acquire locks in same sequence
+```
+
+***
+
+### 2. Use Single Lock
+
+```java
+synchronized(commonLock) {
+
+}
+```
+
+No multiple locks.
+
+***
+
+### 3. Use ReentrantLock with tryLock()
+
+```java
+if(lock1.tryLock()) {
+    try {
+
+        if(lock2.tryLock()) {
+            try {
+
+            } finally {
+                lock2.unlock();
+            }
+        }
+
+    } finally {
+        lock1.unlock();
+    }
+}
+```
+
+If lock unavailable:
+
+```text
+Back off and retry
+```
+
+No deadlock.
+
+***
+
+# Interview Answer (1 Minute)
+
+> A deadlock occurs when two or more threads hold different locks and wait indefinitely for each other's locks. 
+For example, Thread-1 acquires lock1 and waits for lock2, while Thread-2 acquires lock2 and waits for lock1. 
+The most common way to avoid deadlocks is to maintain a consistent lock ordering across all threads. 
+If every thread acquires locks in the same sequence, such as lock1 first and then lock2, circular waiting cannot occur and 
+deadlocks are prevented.
+
+
+
+
+
+

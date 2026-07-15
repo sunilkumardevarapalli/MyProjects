@@ -1,0 +1,145 @@
+We use **multithreading** to perform **multiple tasks at the same time** within a single application.
+
+### Why not use a single thread?
+
+In a single-threaded program, tasks run one after another:
+
+```text
+Task 1 → Task 2 → Task 3
+```
+
+If Task 1 takes a long time, Tasks 2 and 3 must wait.
+
+### With Multithreading
+
+Multiple threads can work concurrently:
+
+```text
+Thread 1 → Task 1
+Thread 2 → Task 2
+Thread 3 → Task 3
+```
+
+This improves performance and responsiveness.
+
+***
+
+## Benefits of Multithreading in Java
+
+### 1. Better Performance
+
+If a task is waiting (e.g., for database or network response), another thread can continue working.
+
+Example:
+
+* Thread 1 downloads a file.
+* Thread 2 processes user input.
+
+***
+
+### 2. Responsive Applications
+
+In GUI applications, the UI should not freeze while performing long operations.
+
+Without threads:
+
+```text
+User clicks button
+↓
+File processing starts
+↓
+UI freezes
+```
+
+With threads:
+
+```text
+Main Thread → UI
+Worker Thread → File Processing
+```
+
+The UI remains responsive.
+
+***
+
+### 3. Better CPU Utilization
+
+Modern computers have multiple CPU cores.
+
+Example:
+
+```text
+Core 1 → Thread 1
+Core 2 → Thread 2
+Core 3 → Thread 3
+Core 4 → Thread 4
+```
+
+Java can use multiple cores to execute tasks faster.
+
+***
+
+### 4. Concurrent Request Handling
+
+In web applications:
+
+```text
+User A Request → Thread 1
+User B Request → Thread 2
+User C Request → Thread 3
+```
+
+Without multithreading, users would need to wait for previous requests to finish.
+
+***
+
+## Real-World Examples
+
+### Browser
+
+* Thread 1: Load webpage
+* Thread 2: Download images
+* Thread 3: Play video
+* Thread 4: Handle user clicks
+
+### Banking Application
+
+* Thread 1: Check balance
+* Thread 2: Generate statement
+* Thread 3: Send notifications
+
+### E-Commerce Website
+
+* Thread 1: Handle login
+* Thread 2: Search products
+* Thread 3: Process payments
+
+***
+
+## Interview Answer
+
+> Multithreading is used to execute multiple tasks concurrently within a single process. 
+It improves application performance, responsiveness, resource utilization, and allows efficient handling of multiple users or
+ operations simultaneously.
+
+### Example
+
+```java
+public class Main {
+    public static void main(String[] args) {
+
+        Thread t1 = new Thread(() -> {
+            System.out.println("Downloading file...");
+        });
+
+        Thread t2 = new Thread(() -> {
+            System.out.println("Playing music...");
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+Here, downloading and playing music can happen concurrently, which is the main purpose of multithreading.

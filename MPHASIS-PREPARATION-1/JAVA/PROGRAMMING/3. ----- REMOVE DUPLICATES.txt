@@ -1,0 +1,317 @@
+ 
+Remove Duplicates:  Emp Object     String     Integer     String Array     Integer Array
+			
+-----------------------------------------------EMP-----------------------------------------
+ 
+					1. distinct() 
+					
+					2. filter + Set 
+					
+					3. LinkedHashSet
+
+					4. LinkedHashMap 
+
+					5. groupingBy   
+					
+					6. toMap 
+
+		✅ 1. Using distinct() (Override equals & hashCode)
+
+			👉 In Emp class:
+
+				@Override
+				public boolean equals(Object o) {
+					if (this == o) return true;
+					if (!(o instanceof Emp)) return false;
+					Emp emp = (Emp) o;
+					return id == emp.id;
+				} 
+				@Override
+				public int hashCode() {
+					return Objects.hash(id);
+				}
+			Then:
+
+			List<Emp> uniqueList = empList.stream()
+										 .distinct()
+										 .collect(Collectors.toList());
+
+			👉 Works only if equals() & hashCode() are based on id
+			
+			Why distinct() Works--> Because internally it uses  equals()   hashCode()
+			
+			List<Emp> uniqueList = empList.stream().map(Emp::getId)
+										 .distinct()
+										 .collect(Collectors.toList());
+										 
+			//Here equals and HashCode will not use. Not Required.
+
+		----------------------------------------------------------------------------------------
+
+
+		✅ 2. Using Set + filter() (Clean & Efficient)
+
+			Set<Integer> seen = new HashSet<>();
+
+			List<Emp> uniqueList = empList.stream()
+					.filter(emp -> seen.add(emp.getId()))
+					.collect(Collectors.toList());
+
+			👉 Set.add() returns false for duplicates
+
+		-----------------------------------------------------------------------------------------
+
+
+		✅ 3. Using LinkedHashMap (Preserve Order)
+
+				Map<Integer, Emp> map = new LinkedHashMap<>();
+
+				for (Emp emp : empList) {
+					map.putIfAbsent(emp.getId(), emp);
+				}
+
+				List<Emp> uniqueList = new ArrayList<>(map.values());
+				
+			Using TreeSet
+
+				Set<Emp> set = new TreeSet<>(Comparator.comparing(Emp::getId));
+				set.addAll(empList);
+
+				List<Emp> uniqueList = new ArrayList<>(set);
+
+				👉 Removes duplicates based on comparator
+
+		-----------------------------------------------------------------------------------------
+
+		✅ 4. Using groupingBy()
+
+			List<Emp> uniqueList = empList.stream()
+				.collect(Collectors.groupingBy(Emp::getId))
+				.values()
+				.stream()
+				.map(list -> list.get(0)) // take first
+				.collect(Collectors.toList());
+			
+			Map<Integer, List<Emp>>
+			{
+			   101 = [Emp1, Emp2],
+			   102 = [Emp3]
+			}
+			From each duplicate group, take the first employee. -->  map(list -> list.get(0))
+		-----------------------------------------------------------------------------------------
+		✅ 5. Using Collectors.toMap() (Best & Most Used)
+
+			List<Emp> uniqueList = new ArrayList<>(
+				empList.stream()
+					   .collect(**** Collectors.toMap(
+												   Emp::getId,
+												   Function.identity(),  ***
+												   (existing, duplicate) -> existing   // keep first
+												)
+								).values()
+			);
+ 
+-----------------------------------------String------------------------------------------------
+
+String str = "programming";	Integer intValue = 234234533;   Integer[] arr = {1, 2, 3, 2, 4, 1, 5};
+
+Distinct:  or   just remove distinct and then replace filter(seen1::add) 
+*************************************************************************
+
+String result = str                     .chars().mapToObj(c -> (char) c).distinct().map(String::valueOf).collect(Collectors.joining()); 
+
+String result = String.valueOf(intValue).chars().mapToObj(c -> (char) c).distinct().map(String::valueOf).collect(Collectors.joining()); 
+
+String result =      Arrays.stream(str.split(" ")).distinct().collect(Collectors.joining(" ")); 
+
+List<Integer> list = Arrays.stream(intArr)        .distinct().collect(Collectors.toList());
+
+LinkedHashSet:
+****************** 
+
+String result3 = new LinkedHashSet<>(Arrays.asList(input4.split("")))                   .stream().collect(Collectors.joining());	
+
+Integer result = Integer.valueOf(
+				 new LinkedHashSet<>(Arrays.asList(String.valueOf(intValue).split(""))).stream().collect(Collectors.joining())
+				 
+ String result = new LinkedHashSet<>(Arrays.asList(               input.split(" ")))   .stream().collect(Collectors.joining(" "));
+ 
+ List<Integer> result 
+               = new LinkedHashSet<>(Arrays.asList(arr))                               .stream().collect(Collectors.toList());
+
+ ---------------------------------------------------------------------------------------------------------------- 
+  
+### `String::toString()` vs `String::valueOf()`
+
+They are quite different.
+
+| Method             | Type            | Purpose                                         |
+| ------------------ | --------------- | ----------------------------------------------- |
+| `toString()`       | Instance method | Converts an object to its string representation |
+| `String.valueOf()` | Static method   | Converts any value/object to a `String`         |
+
+---
+
+## 1. `toString()`
+
+Called on an existing object.
+
+```java
+String str = "Hello";
+
+System.out.println(str.toString());
+```
+
+Output:
+
+```text
+Hello
+```
+
+For `String`, `toString()` simply returns the same string.
+
+Internally:
+
+```java
+public String toString() {
+    return this;
+}
+```
+
+---
+
+## 2. `String.valueOf()`
+
+A static utility method.
+
+```java
+int num = 100;
+
+String s = String.valueOf(num);
+
+System.out.println(s);
+```
+
+Output:
+
+```text
+100
+```
+
+It works with many types:
+
+```java
+String.valueOf(10);
+String.valueOf(10.5);
+String.valueOf(true);
+String.valueOf('A');
+String.valueOf(obj);
+```
+
+---
+
+## Null Handling Difference
+
+### `toString()`
+
+```java
+String str = null;
+
+str.toString();
+```
+
+Output:
+
+```text
+NullPointerException
+```
+
+Because you're calling a method on a null reference.
+
+---
+
+### `String.valueOf()`
+
+```java
+Object obj = null;
+
+System.out.println(String.valueOf(obj));
+```
+
+Output:
+
+```text
+null
+```
+
+No exception.
+
+Internally:
+
+```java
+return (obj == null) ? "null" : obj.toString();
+```
+
+---
+
+## Method Reference Usage
+
+### `String::toString`
+
+```java
+List<String> list = Arrays.asList("A", "B", "C");
+
+list.stream()
+    .map(String::toString)
+    .forEach(System.out::println);
+```
+
+Not very useful because elements are already strings.
+
+---
+
+### `String::valueOf`
+
+```java
+List<Integer> nums = Arrays.asList(1, 2, 3);
+
+List<String> result =
+        nums.stream()
+            .map(String::valueOf)
+            .toList();
+```
+
+Output:
+
+```text
+["1", "2", "3"]
+```
+
+Useful for converting other types to strings.
+
+---
+
+## Summary
+
+| Feature               | `toString()`          | `String.valueOf()`          |
+| --------------------- | --------------------- | --------------------------- |
+| Method Type           | Instance              | Static                      |
+| Called On             | Object instance       | `String` class              |
+| Accepts primitives    | ❌ No                  | ✅ Yes                       |
+| Accepts objects       | ✅ Yes                 | ✅ Yes                       |
+| Handles `null` safely | ❌ No (`NPE`)          | ✅ Returns `"null"`          |
+| Common Usage          | Object representation | Convert any value to String |
+
+### Example
+
+```java
+Object obj = null;
+
+// Throws NullPointerException
+obj.toString();
+
+// Returns "null"
+String.valueOf(obj);
+```
+
+So, **`String.valueOf()` is safer and more commonly used for conversions, while `toString()` is used when you already have a non-null object and want its string representation.**

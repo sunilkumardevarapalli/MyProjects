@@ -1,0 +1,172 @@
+## HashMap vs Hashtable in Java
+
+| Feature               | HashMap                      | Hashtable                     |
+| --------------------- | ---------------------------- | ----------------------------- |
+| **Thread Safety**     | Not synchronized             | Synchronized                  |
+| **Performance**       | Faster                       | Slower due to synchronization |
+| **Null Keys**         | One null key allowed         | Null keys not allowed         |
+| **Null Values**       | Multiple null values allowed | Null values not allowed       |
+| **Introduced In**     | Java 1.2                     | Java 1.0                      |
+| **Legacy Class**      | No                           | Yes                           |
+| **Iterator**          | Fail-fast Iterator           | Enumerator + Iterator         |
+| **Concurrent Access** | Use `ConcurrentHashMap`      | Synchronized entire map       |
+| **Locking Mechanism** | No locking                   | Method-level locking          |
+| **Recommended**       | Yes                          | No (Legacy)                   |
+
+---
+
+## Example 1: HashMap
+
+```java
+Map<Integer, String> map = new HashMap<>();
+
+map.put(1, "John");
+map.put(null, "Null Key");
+map.put(2, null);
+
+System.out.println(map);
+```
+
+Output:
+
+```java
+{null=Null Key, 1=John, 2=null}
+```
+
+---
+
+## Example 2: Hashtable
+
+```java
+Hashtable<Integer, String> table = new Hashtable<>();
+
+table.put(1, "John");
+table.put(2, "Mike");
+
+// table.put(null, "Null Key"); // NullPointerException
+// table.put(3, null);          // NullPointerException
+
+System.out.println(table);
+```
+
+Output:
+
+```java
+{2=Mike, 1=John}
+```
+
+---
+
+## Synchronization Difference
+
+### HashMap (Not Thread Safe)
+
+```java
+Map<Integer, String> map = new HashMap<>();
+```
+
+Multiple threads modifying the map simultaneously may lead to data inconsistency.
+
+---
+
+### Hashtable (Thread Safe)
+
+```java
+Hashtable<Integer, String> table = new Hashtable<>();
+```
+
+Every method is synchronized:
+
+```java
+public synchronized V put(K key, V value)
+```
+
+Entire table gets locked, reducing performance.
+
+---
+
+## Better Alternative: ConcurrentHashMap
+
+```java
+ConcurrentHashMap<Integer, String> map = new ConcurrentHashMap<>();
+
+map.put(1, "John");
+map.put(2, "Mike");
+```
+
+### Advantages
+
+* Thread-safe
+* Better performance than Hashtable
+* Segment-level / bucket-level locking (Java 7)
+* CAS + synchronized mechanisms (Java 8+)
+* Allows concurrent reads and writes
+
+---
+
+## Real-Time Scenario
+
+### Cache Storage
+
+❌ Hashtable
+
+```java
+Hashtable<String, User> cache = new Hashtable<>();
+```
+
+Problems:
+
+* Entire map locked
+* Poor scalability
+
+✅ Preferred
+
+```java
+ConcurrentHashMap<String, User> cache = new ConcurrentHashMap<>();
+```
+
+Used in:
+
+* Session cache
+* Spring Boot applications
+* Microservices
+* High-concurrency systems
+
+---
+
+## Internal Working
+
+### HashMap
+
+1. Computes hash of key.
+2. Finds bucket index.
+3. Stores Entry (Node).
+4. Collision handled using:
+
+   * Linked List (before Java 8)
+   * Red-Black Tree (bucket size > 8 and capacity ≥ 64)
+
+Time Complexity:
+
+* `get()` → O(1)
+* `put()` → O(1)
+* Worst case → O(log n) (tree)
+
+---
+
+### Hashtable
+
+Same hashing mechanism, but every operation is synchronized:
+
+```java
+public synchronized V get(Object key)
+public synchronized V put(K key, V value)
+```
+
+Hence slower under heavy concurrent load.
+
+---
+
+## Interview Answer (10+ Years Experience)
+
+> HashMap is non-synchronized, allows one null key and multiple null values, and provides better performance. Hashtable is a legacy synchronized class that doesn't allow null keys or values and locks the entire table for every operation, making it slower. In multithreaded applications, instead of Hashtable, I prefer `ConcurrentHashMap`, which provides thread safety with better concurrency and scalability.

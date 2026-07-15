@@ -1,0 +1,723 @@
+# Java Multithreading Interview Notes (All Answers Summary)
+
+## 1. What is a Thread?
+
+A Thread is the smallest unit of execution inside a process.
+
+A process can contain multiple threads that execute tasks concurrently.
+
+Examples:
+
+* Browser loading page + downloading images
+* Banking application handling multiple requests
+* Web server serving multiple users
+
+***
+
+## 2. Why Multithreading?
+
+Advantages:
+
+* Better Performance
+* Better CPU Utilization
+* Improved Responsiveness
+* Concurrent Task Execution
+* Background Processing
+
+Example:
+
+Without Multithreading
+
+```text
+Download File
+↓
+Play Music
+↓
+Open Browser
+```
+
+With Multithreading
+
+```text
+Thread-1 Download File
+Thread-2 Play Music
+Thread-3 Open Browser
+```
+
+All happen simultaneously.
+
+***
+
+## 3. Runnable vs Callable
+
+### Runnable
+
+* Introduced in Java 1.0
+* run() method
+* No return value
+* Cannot throw checked exceptions
+
+Example Use Cases:
+
+* Sending Email
+* Logging
+* Cache Refresh
+* Notifications
+* File Cleanup
+
+### Callable
+
+* Introduced in Java 5
+* call() method
+* Returns value
+* Can throw checked exceptions
+
+Example Use Cases:
+
+* Database Queries
+* Salary Calculation
+* Payment Processing
+* API Calls
+* Report Generation
+
+Interview Answer:
+
+Runnable is used when no result is required. Callable is used when a result is required.
+
+***
+
+## 4. Thread Life Cycle
+
+```text
+NEW
+↓
+RUNNABLE
+↓
+RUNNING
+↓
+WAITING/BLOCKED/TIMED_WAITING
+↓
+TERMINATED
+```
+
+### Methods
+
+start()
+
+Moves NEW → RUNNABLE
+
+run()
+
+Contains actual business logic.
+
+sleep()
+
+Moves thread to TIMED\_WAITING.
+
+wait()
+
+Moves thread to WAITING.
+
+join()
+
+Wait for other thread completion.
+
+yield()
+
+Suggest scheduler to give chance to others.
+
+interrupt()
+
+Interrupt waiting/sleeping thread.
+
+***
+
+## 5. Runnable Pool vs Running State
+
+### Runnable Pool
+
+Thread is ready.
+
+Waiting for CPU.
+
+```text
+T1
+T2
+T3
+T4
+```
+
+### Running State
+
+Thread got CPU and executing.
+
+```text
+CPU
+ ↓
+T2 Running
+```
+
+Interview Answer:
+
+Runnable means ready for execution. Running means currently executing.
+
+***
+
+## 6. How OS Gives Permission?
+
+When:
+
+```java
+t.start();
+```
+
+Thread enters Runnable Pool.
+
+OS Scheduler decides:
+
+```text
+Which thread gets CPU?
+```
+
+Based on:
+
+* CPU Availability
+* Scheduling Algorithm
+* Thread Priority
+* Time Slice
+
+JVM doesn't execute the thread directly.
+
+OS Scheduler grants CPU time.
+
+***
+
+## 7. Race Condition
+
+Occurs when multiple threads update shared data simultaneously.
+
+Example:
+
+Balance = 1000
+
+Thread-1 → Withdraw 200
+
+Thread-2 → Withdraw 300
+
+Expected:
+
+```text
+500
+```
+
+Actual:
+
+```text
+700
+```
+
+Reason:
+
+Both threads read old value.
+
+Interview Answer:
+
+Race Condition happens when multiple threads modify shared data at the same time causing inconsistent results.
+
+***
+
+## 8. Synchronization
+
+Synchronization allows only one thread at a time to access critical code.
+
+Purpose:
+
+* Prevent Race Condition
+* Maintain Data Consistency
+* Ensure Thread Safety
+
+Examples:
+
+1. ATM Withdrawal
+2. Ticket Booking
+3. Inventory Management
+4. Payment Processing
+5. Leave Management
+6. Hospital Slots
+7. Logging
+8. Database Updates
+9. Printer Access
+10. Online Gaming Scores
+
+***
+
+## 9. Object-Level Lock (Instance Lock)
+
+Applied on:
+
+```java
+synchronized void m1()
+```
+
+Lock belongs to:
+
+```java
+this
+```
+
+Example:
+
+```java
+obj1.m1()
+obj1.m2()
+```
+
+Only one thread allowed.
+
+Example:
+
+```java
+obj1.m1()
+obj2.m2()
+```
+
+Both can execute.
+
+Reason:
+
+Different objects → Different locks.
+
+***
+
+## 10. Class-Level Lock
+
+Applied on:
+
+```java
+static synchronized void m1()
+```
+
+Lock belongs to:
+
+```java
+ClassName.class
+```
+
+Example:
+
+```java
+obj1.m1()
+obj2.m2()
+```
+
+Still only one thread allowed.
+
+Reason:
+
+Both require same Class lock.
+
+***
+
+## 11. Object Lock vs Class Lock
+
+Object Lock
+
+```java
+synchronized method
+```
+
+Lock:
+
+```text
+Object
+```
+
+Class Lock
+
+```java
+static synchronized method
+```
+
+Lock:
+
+```text
+ClassName.class
+```
+
+***
+
+## 12. Sleep vs Wait
+
+### sleep()
+
+Class:
+
+```text
+Thread
+```
+
+Purpose:
+
+```text
+Pause execution
+```
+
+Releases Lock?
+
+```text
+No
+```
+
+Wakeup:
+
+```text
+Automatically
+```
+
+### wait()
+
+Class:
+
+```text
+Object
+```
+
+Purpose:
+
+```text
+Inter Thread Communication
+```
+
+Releases Lock?
+
+```text
+Yes
+```
+
+Wakeup:
+
+```text
+notify()
+notifyAll()
+```
+
+Interview Answer:
+
+sleep() pauses thread without releasing lock. wait() releases lock and waits for notification.
+
+***
+
+## 13. notify()
+
+Wakes one waiting thread.
+
+Example:
+
+Waiting Queue:
+
+```text
+T1
+T2
+T3
+```
+
+After:
+
+```java
+notify();
+```
+
+One thread wakes.
+
+Example:
+
+```text
+T2
+```
+
+(No guarantee which one)
+
+***
+
+## 14. notifyAll()
+
+Wakes all waiting threads.
+
+Example:
+
+Waiting Queue
+
+```text
+T1
+T2
+T3
+```
+
+After:
+
+```java
+notifyAll();
+```
+
+All become runnable.
+
+```text
+T1
+T2
+T3
+```
+
+Then compete for lock.
+
+***
+
+## 15. wait() and notify() Same Object Rule
+
+If:
+
+```java
+object1.wait();
+```
+
+Then:
+
+```java
+object1.notify();
+```
+
+works.
+
+But:
+
+```java
+object2.notify();
+```
+
+doesn't work.
+
+Reason:
+
+Each object maintains its own waiting queue.
+
+Example:
+
+```text
+object1 Queue
+-------------
+T1
+T2
+
+object2 Queue
+-------------
+T3
+T4
+```
+
+object1 can wake only threads waiting on object1.
+
+***
+
+## 16. Thread Pool
+
+Thread Pool = Collection of reusable worker threads.
+
+Benefits:
+
+* Better Performance
+* Less Memory Usage
+* Reusability
+* Reduced Thread Creation Cost
+
+Provided by:
+
+```java
+ExecutorService
+```
+
+***
+
+## 17. Single Thread Pool
+
+```java
+Executors.newSingleThreadExecutor()
+```
+
+Threads:
+
+```text
+1
+```
+
+Execution:
+
+```text
+Task1
+Task2
+Task3
+```
+
+One by one.
+
+Use Cases:
+
+* Logging
+* Queue Processing
+* Audit Trail
+
+***
+
+## 18. Fixed Thread Pool
+
+```java
+Executors.newFixedThreadPool(5)
+```
+
+Threads:
+
+```text
+Fixed 5
+```
+
+Use Cases:
+
+* Web Applications
+* Banking Systems
+* Microservices
+
+***
+
+## 19. Cached Thread Pool
+
+```java
+Executors.newCachedThreadPool()
+```
+
+Threads created dynamically.
+
+Use Cases:
+
+* Notifications
+* API Calls
+* Chat Applications
+
+Risk:
+
+Can create too many threads.
+
+***
+
+## 20. Scheduled Thread Pool
+
+```java
+Executors.newScheduledThreadPool(2)
+```
+
+Used for:
+
+* Delay Tasks
+* Recurring Tasks
+
+Use Cases:
+
+* Daily Reports
+* Interest Calculation
+* Health Checks
+* Scheduler Jobs
+
+***
+
+## 21. Suspended Mode vs Stepping Mode
+
+### Suspended Mode
+
+Debugger pauses thread.
+
+Caused by:
+
+* Breakpoint
+* Manual Pause
+
+### Stepping Mode
+
+Execute code line by line.
+
+Types:
+
+* Step Into
+* Step Over
+* Step Return
+
+Interview Answer:
+
+Suspended and Stepping are debugger concepts, not actual JVM thread states.
+
+***
+
+## 22. Biggest Multithreading Problems
+
+1. Race Condition
+2. Deadlock
+3. Starvation
+4. Livelock
+5. Thread Interference
+6. Memory Visibility Issues
+7. Context Switching Overhead
+8. Synchronization Overhead
+
+***
+
+## 23. Most Important Interview Formula
+
+```text
+Shared Data + Multiple Threads
+            ↓
+      Need Synchronization
+```
+
+```text
+Instance Synchronized
+        ↓
+ Object Level Lock
+```
+
+```text
+Static Synchronized
+        ↓
+ Class Level Lock
+```
+
+```text
+wait()
+        ↓
+Releases Lock
+```
+
+```text
+sleep()
+        ↓
+Does NOT Release Lock
+```
+
+```text
+notify()
+        ↓
+One Thread
+```
+
+```text
+notifyAll()
+        ↓
+All Waiting Threads
+```
+
+```text
+Runnable
+        ↓
+No Return Value
+```
+
+```text
+Callable
+        ↓
+Returns Value
+```

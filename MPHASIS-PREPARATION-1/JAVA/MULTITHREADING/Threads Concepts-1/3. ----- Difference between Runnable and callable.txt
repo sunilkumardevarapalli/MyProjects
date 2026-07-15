@@ -1,0 +1,182 @@
+### Runnable vs Callable in Java
+
+Both **Runnable** and **Callable** are used to execute tasks in separate threads, but they have important differences.
+
+| Feature            | Runnable                        | Callable                     |
+| ------------------ | ------------------------------- | ---------------------------- |
+| Package            | `java.lang`                     | `java.util.concurrent`       |
+| Return Value       | No return value                 | Returns a value              |
+| Exception Handling | Cannot throw checked exceptions | Can throw checked exceptions |
+| Method             | `run()`                         | `call()`                     |
+| Return Type        | `void`                          | `V` (Generic type)           |
+| Used With          | `Thread`, `ExecutorService`     | `ExecutorService`            |
+| Result Retrieval   | Not possible directly           | Via `Future`                 |
+
+### Runnable Example
+
+```java
+Runnable task = () -> {
+    System.out.println("Processing...");
+};
+
+new Thread(task).start();
+```
+
+### Callable Example
+
+```java
+Callable<Integer> task = () -> {
+    return 100;
+};
+
+ExecutorService executor = Executors.newSingleThreadExecutor();
+
+Future<Integer> future = executor.submit(task);
+
+System.out.println(future.get());
+
+executor.shutdown();
+```
+
+***
+
+# 5 Real-Time Scenarios
+
+## 1. Sending Email Notifications → Runnable
+
+### Scenario
+
+After a user places an order, you want to send a confirmation email in the background.
+
+You don't care about returning any result to the caller.
+
+```java
+Runnable emailTask = () -> {
+    emailService.sendEmail(user);
+};
+
+executor.submit(emailTask);
+```
+
+### Why Runnable?
+
+✅ Just perform the action  
+✅ No return value needed
+
+***
+
+## 2. Calculating Monthly Salary → Callable
+
+### Scenario
+
+HR system calculates an employee's salary and needs the final amount.
+
+```java
+Callable<Double> salaryTask = () -> {
+    return salaryService.calculateSalary(empId);
+};
+
+Future<Double> result = executor.submit(salaryTask);
+
+Double salary = result.get();
+```
+
+### Why Callable?
+
+✅ Need a result  
+✅ Calculation returns a value
+
+***
+
+## 3. Database Query Execution → Callable
+
+### Scenario
+
+Fetch customer details from the database.
+
+```java
+Callable<Customer> customerTask = () -> {
+    return customerRepository.findById(1001);
+};
+```
+
+### Why Callable?
+
+✅ Need customer object back  
+✅ Exceptions like SQL exceptions can be propagated
+
+***
+
+## 4. Logging User Activity → Runnable
+
+### Scenario
+
+User logs in and activity needs to be stored.
+
+```java
+Runnable logTask = () -> {
+    auditService.saveLog(userId);
+};
+
+executor.submit(logTask);
+```
+
+### Why Runnable?
+
+✅ Fire-and-forget operation  
+✅ No output expected
+
+***
+
+## 5. Calling External API and Returning Response → Callable
+
+### Scenario
+
+E-commerce application calls a payment gateway.
+
+```java
+Callable<PaymentResponse> paymentTask = () -> {
+    return paymentGateway.processPayment(order);
+};
+
+Future<PaymentResponse> response =
+        executor.submit(paymentTask);
+
+PaymentResponse result = response.get();
+```
+
+### Why Callable?
+
+✅ Need payment response  
+✅ Need exception handling if API fails
+
+***
+
+# Simple Interview Rule
+
+Use **Runnable** when:
+
+> "I want to perform a task, but I don't need any result."
+
+Examples:
+
+* Logging
+* Sending emails
+* Cache refresh
+* File cleanup
+
+Use **Callable** when:
+
+> "I want to perform a task and get a result back."
+
+Examples:
+
+* Database queries
+* API calls
+* Report generation
+* Calculations
+
+### Interview One-Liner
+
+> **Runnable is used for tasks that do not return a result, whereas Callable is used for tasks that return a result and can 
+throw checked exceptions. Callable works with ExecutorService and returns results through a Future object.**

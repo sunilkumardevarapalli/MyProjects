@@ -1,0 +1,322 @@
+# What is a Thread Pool?
+
+A **Thread Pool** is a collection of pre-created worker threads that are reused to execute tasks.
+
+Instead of creating a new thread for every task:
+
+```text
+Task 1 --> New Thread
+Task 2 --> New Thread
+Task 3 --> New Thread
+```
+we create a pool of threads once and reuse them:
+
+```text
+Thread Pool
+------------
+Thread-1
+Thread-2
+Thread-3
+
+Tasks are assigned to available threads
+```
+
+### Why Do We Need Thread Pools?
+
+Creating threads is expensive because:
+
+* Memory is allocated
+* Stack is created
+* OS scheduling is required
+* Context switching increases
+
+Using a thread pool:
+
+✅ Better Performance
+
+✅ Reuse existing threads
+
+✅ Better Resource Management
+
+✅ Prevent Too Many Threads Creation
+
+✅ Improved Scalability
+
+***
+
+# Executor Framework
+
+Java provides Thread Pools through:
+
+```java
+ExecutorService
+```
+
+Example:
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(5);
+```
+
+***
+
+# 1. Single Thread Pool
+
+Creates only **one worker thread**.
+
+```java
+ExecutorService executor =
+        Executors.newSingleThreadExecutor();
+```
+
+### Example
+
+```java
+ExecutorService executor =
+        Executors.newSingleThreadExecutor();
+
+executor.submit(() -> System.out.println("Task 1"));
+
+executor.submit(() -> System.out.println("Task 2"));
+
+executor.submit(() -> System.out.println("Task 3"));
+
+executor.shutdown();
+```
+
+### Execution
+
+```text
+Task 1
+Task 2
+Task 3
+```
+
+One after another.
+
+### Real-Time Scenarios
+
+* Bank statement generation
+* Queue processing
+* File writing
+* Audit logging
+
+When tasks must execute in order.
+
+***
+
+# 2. Fixed Thread Pool
+
+Creates a fixed number of threads.
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(3);
+```
+
+### Example
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(3);
+
+for(int i = 1; i <= 10; i++) {
+
+    int task = i;
+
+    executor.submit(() ->
+            System.out.println(
+                    Thread.currentThread().getName()
+                            + " Task " + task));
+}
+
+executor.shutdown();
+```
+
+### Execution
+
+```text
+Pool has 3 Threads
+
+Task1 -> Thread1
+Task2 -> Thread2
+Task3 -> Thread3
+
+Remaining tasks wait in queue
+```
+
+### Real-Time Scenarios
+
+* Web Applications
+* Banking Systems
+* Order Processing
+* Employee Management
+
+When you know the expected concurrency level.
+
+***
+
+# 3. Cached Thread Pool
+
+Creates threads dynamically as needed.
+
+```java
+ExecutorService executor =
+        Executors.newCachedThreadPool();
+```
+
+### Behavior
+
+```text
+No idle thread?
+Create new thread.
+
+Idle thread available?
+Reuse thread.
+```
+
+### Example
+
+```java
+ExecutorService executor =
+        Executors.newCachedThreadPool();
+
+for(int i = 1; i <= 100; i++) {
+
+    int task = i;
+
+    executor.submit(() ->
+            System.out.println(
+                    Thread.currentThread().getName()
+                            + " Task " + task));
+}
+
+executor.shutdown();
+```
+
+### Real-Time Scenarios
+
+* Chat Applications
+* Notification Systems
+* API Calls
+* Short-lived Tasks
+
+### Drawback
+
+If many tasks arrive:
+
+```text
+1000 tasks
+1000 threads possible
+```
+
+Can consume lots of memory.
+
+***
+
+# 4. Scheduled Thread Pool
+
+Used for executing tasks periodically or after a delay.
+
+```java
+ScheduledExecutorService executor =
+        Executors.newScheduledThreadPool(2);
+```
+
+### Run Once After Delay
+
+```java
+executor.schedule(
+        () -> System.out.println("Executed"),
+        5,
+        TimeUnit.SECONDS);
+```
+
+### Run Periodically
+
+```java
+executor.scheduleAtFixedRate(
+        () -> System.out.println("Running"),
+        0,
+        10,
+        TimeUnit.SECONDS);
+```
+
+### Real-Time Scenarios
+
+* Sending reminders
+* Health checks
+* Cache refresh
+* Report generation
+* Daily batch jobs
+
+***
+
+# Interview Comparison
+
+| Thread Pool          | Threads            | Real Use Case         |
+| -------------------- | ------------------ | --------------------- |
+| SingleThreadExecutor | 1                  | Sequential processing |
+| FixedThreadPool      | Fixed count        | Web servers, APIs     |
+| CachedThreadPool     | Dynamic            | Short-lived tasks     |
+| ScheduledThreadPool  | Fixed + Scheduling | Cron-like jobs        |
+
+***
+
+# HDFC Bank Example
+
+### Single Thread Pool
+
+```text
+Withdraw
+Deposit
+Balance Check
+
+Executed one by one
+```
+
+***
+
+### Fixed Thread Pool (3)
+
+```text
+ATM Withdraw
+GooglePay Deposit
+PhonePe Transfer
+
+All can execute simultaneously
+```
+
+***
+
+### Cached Thread Pool
+
+```text
+100 customers perform transactions
+
+Pool creates threads as needed
+```
+
+***
+
+### Scheduled Thread Pool
+
+```text
+Daily Interest Calculation
+Every night at 12 AM
+```
+
+***
+
+# Interview Answer (1 Minute)
+
+> A Thread Pool is a group of reusable worker threads managed by the Executor Framework. Instead of creating a new thread for every task, tasks are submitted to the pool and executed by available threads. This improves performance and resource utilization. Common thread pools are SingleThreadExecutor for sequential execution, FixedThreadPool for a fixed number of workers, CachedThreadPool for dynamically growing threads, and ScheduledThreadPool for delayed or periodic task execution.
+
+
+
+
+-------------------
+
+
+

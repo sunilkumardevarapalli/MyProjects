@@ -1,0 +1,197 @@
+
+Note: Nth Hiest number is different and Nth Most Repeated different
+
+			Integer		String		Integer-Array	String-array	Emp 
+			
+Repeted		  ""          ""            ""              ""			""
+
+Non Repeted	  ""          ""            ""              ""			""
+
+Sorted        ""          ""            ""              ""			""
+
+Removing      ""          ""            ""              ""			""
+
+4 ways to convert and +1 for EMP
+4 ways to returns
+
+4 conditions
+	Repeted
+	Max Repeted: 
+	
+	First and Second Repeated :	
+	SecondMaxRepeatedChar:  
+
+-------------------------------------------------------------------------------------------------- 
+
+	String input = "programming";
+
+			List<Character> repeated = 		
+						input.chars()
+						.mapToObj(c -> (char) c)
+						.collect(Collectors.groupingBy(Function.identity(),LinkedHashMap::new,Collectors.counting()))
+						.entrySet()
+
+	String[] words = {"java","spring","java","docker","spring"};
+
+			List<String> repeated = Arrays.stream(words)
+						.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+						.entrySet()
+
+	long intValue = 76876543678L;
+
+			List<Integer> repeated = String.valueOf(intValue)
+						.chars()
+						.mapToObj(c -> c - '0')
+						.collect(Collectors.groupingBy( Function.identity(), Collectors.counting()))
+						.entrySet()
+
+	List<Integer> listInteger = Arrays.asList(1,2,3,2,4,5,1,6);	
+
+			List<Integer> repeated = listInteger.stream()
+						.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+						.entrySet()
+Emp:
+
+	List<Emp> repeatedEmployees =
+
+		list.stream() 
+			.collect(Collectors.groupingBy(
+					Emp::getId,  //Integer already has proper equals() and hashCode() so not required
+					Collectors.counting()
+			)) 
+			.entrySet()
+			.stream() 
+			.filter(e -> e.getValue() > 1) 
+			.map(Map.Entry::getKey) 
+			.collect(Collectors.toList());	
+
+
+
+Note: .map(Map::getKey) then only 	convert to list .map(Map::getKey)  not map
+
+2) 		.filter(e -> e.getValue() > 1)   can convert to map key and vlaue but not like this 
+
+		below is wrong
+		
+			.filter(e -> e.getValue() > 1) 
+			.map(Map.Entry::getKey) 
+
+			.collect(Collectors.toMap(
+									   Map.Entry::getKey,
+									   Map.Entry::getValue,
+									   (a, b) -> a,
+									   LinkedHashMap::new));
+									   
+			below is right 
+			
+			.filter(e -> e.getValue() > 1)  
+			.collect(Collectors.toMap(
+									   Map.Entry::getKey,
+									   Map.Entry::getValue,
+									   (a, b) -> a,
+									   LinkedHashMap::new));
+
+-------------------------------------------------------------------------------------------------
+		Repeted
+					.stream()
+					.filter(e -> e.getValue() > 1)  // Note: .filter(e -> e.getValue() == 1)  Non-Repeated
+					.map(Map.Entry::getKey)
+					.collect(Collectors.toList());
+
+		First and Second Repeated : 
+
+					.stream()
+					.filter(e -> e.getValue() > 1) // Note: .filter(e -> e.getValue() == 1)  Non-Repeated
+					.map(Map.Entry::getKey)
+					.skip(1) //without this line first repeted
+					.findFirst()
+					.orElse(null);
+
+		Max Repeted: 
+                    .stream()
+
+                    .max(Map.Entry.comparingByValue())  // Return Optional<Map.Entry<Character, Long>>
+					or .max((e1, e2) -> e1.compareTo(e2))
+
+                    .map(Map.Entry::getKey) //returns Character
+                    .orElse(' ');
+
+		SecondMaxRepeatedChar:  ***
+					.stream()
+					.sorted(Map.Entry.<Character, Long>comparingByValue().reversed())
+					.distinct()
+					.skip(1)
+					.findFirst();
+
+Max Repeted & Second Max Repeted only difference is : remove 'max' and then replace with 'sorted' 					
+
+------------------------------------------------------------------------------------------  
+
+Find First Duplicate.
+
+import java.util.*;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        List<Integer> list = Arrays.asList(1,2,3,2,4,5,1,6);
+
+        Set<Integer> set = new HashSet<>();
+        Integer result = list.stream()
+                .filter(n -> !set.add(n))
+                .findFirst()
+                .orElse(null);
+
+        System.out.println(result);
+    }
+}
+------------------------------------------------------------------------------------------  
+ 
+Note: 
+		Function.identity() --> groups objects using object equality.
+		
+		Internally groupingBy() uses HashMap.
+
+		And HashMap duplicate checking depends on:
+
+			hashCode()
+			equals()
+			
+		Important Internal Flow:
+
+			groupingBy()
+				↓
+			HashMap
+				↓
+			hashCode()
+				↓
+			equals()
+----------------------------------------------------------------------------------------------	
+		Very Important Interview Point:
+
+			Hash-based collections require:
+				equals()
+				hashCode()
+
+			Examples:
+
+				HashMap, LinkedHashMap
+				HashSet, LinkedHashSet
+				Hashtable
+				groupingBy()
+				distinct()	
+				
+	Note: Integer already has proper equals/hashCode.
+
+Non Hash-based Collections: These do NOT use hashCode():
+
+| Collection      | Uses                   |
+| --------------- | ---------------------- |
+| `ArrayList`     | Index-based            |
+| `LinkedList`    | Node-based             |
+| `TreeSet`       | compareTo / Comparator |
+| `TreeMap`       | compareTo / Comparator |
+| `PriorityQueue` | Heap ordering          |
+
+-------------------------------------------------------------------------------------------------------- 

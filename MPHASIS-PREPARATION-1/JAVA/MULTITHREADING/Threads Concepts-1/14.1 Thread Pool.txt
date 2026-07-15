@@ -1,0 +1,251 @@
+## 1. How can we create a Thread Pool using Executor Framework?
+
+Java provides the **Executor Framework** (`java.util.concurrent`) to manage thread pools efficiently.
+
+Instead of:
+
+```java
+Thread t1 = new Thread(task);
+Thread t2 = new Thread(task);
+Thread t3 = new Thread(task);
+```
+
+We use:
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(3);
+```
+
+### Example
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(3);
+
+        for(int i=1; i<=5; i++) {
+
+            int taskId = i;
+
+            executor.submit(() -> {
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " executing Task " + taskId);
+
+            });
+        }
+
+        executor.shutdown();
+    }
+}
+```
+
+### Output
+
+```text
+pool-1-thread-1 executing Task 1
+pool-1-thread-2 executing Task 2
+pool-1-thread-3 executing Task 3
+pool-1-thread-1 executing Task 4
+pool-1-thread-2 executing Task 5
+```
+
+Notice:
+
+* Only 3 threads are created.
+* Threads are reused.
+* Tasks are executed by available threads.
+
+***
+
+## Types of Thread Pools
+
+### Single Thread Pool
+
+```java
+ExecutorService executor =
+        Executors.newSingleThreadExecutor();
+```
+
+Only one worker thread.
+
+***
+
+### Fixed Thread Pool:Fixed number of threads.
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(5);
+```
+
+Fixed number of threads.
+
+***
+
+### Cached Thread Pool:Creates threads dynamically.
+
+```java
+ExecutorService executor =
+        Executors.newCachedThreadPool();
+```
+
+Creates threads dynamically.
+
+***
+
+### Scheduled Thread Pool:Runs tasks after delay or periodically.
+
+```java
+ScheduledExecutorService executor =
+        Executors.newScheduledThreadPool(2);
+```
+
+Runs tasks after delay or periodically.
+
+***
+
+## 2. How can we create Independent Paths of Execution?
+
+An **Independent Path of Execution** means creating multiple threads.
+
+Each thread has its own:
+
+* Stack
+* Program Counter
+* Execution Flow
+
+### Method 1: Extending Thread Class
+
+```java
+class MyThread extends Thread {
+
+    public void run() {
+
+        System.out.println(
+                Thread.currentThread().getName());
+    }
+}
+```
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+
+        MyThread t1 = new MyThread();
+        MyThread t2 = new MyThread();
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+Here:
+
+```text
+Main Thread
+T1 Thread
+T2 Thread
+```
+
+Three independent execution paths.
+
+***
+
+### Method 2: Implementing Runnable
+
+(Most common in interviews)
+
+```java
+class MyTask implements Runnable {
+
+    public void run() {
+
+        System.out.println(
+                Thread.currentThread().getName());
+    }
+}
+```
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+
+        Thread t1 = new Thread(new MyTask());
+        Thread t2 = new Thread(new MyTask());
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+***
+
+### Method 3: Using Lambda Expression
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+
+        Thread t1 =
+                new Thread(() -> System.out.println("Task-1"));
+
+        Thread t2 =
+                new Thread(() -> System.out.println("Task-2"));
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+***
+
+### Method 4: Using Callable + ExecutorService
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(2);
+
+executor.submit(() -> {
+    System.out.println("Task-1");
+    return 100;
+});
+
+executor.shutdown();
+```
+
+***
+
+## Interview Answer
+
+**Q: How can we create a thread pool?**
+
+> We can create a thread pool using the Executor Framework and the Executors utility class. 
+Examples include `newFixedThreadPool()`, `newSingleThreadExecutor()`, `newCachedThreadPool()`, and `newScheduledThreadPool()`.
+
+**Q: How can we create an independent path of execution?**
+
+> An independent path of execution is created by creating a new thread. In Java, 
+this can be done by extending the Thread class, implementing Runnable, using Callable with ExecutorService, 
+or using lambda expressions. 
+
+
+Calling `start()` creates a new thread and a separate execution path.
+
+
+
+-----------------------
+

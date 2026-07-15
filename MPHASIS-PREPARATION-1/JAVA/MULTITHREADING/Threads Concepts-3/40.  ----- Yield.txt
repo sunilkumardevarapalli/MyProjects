@@ -1,0 +1,263 @@
+
+
+Yield: 
+
+	`yield()` is a static method of the `Thread` class. Thread.yield();
+	
+	Thread Ordaring: yield() does not guarantee that t1 will execute before t2. The scheduler may ignore the hint.
+	
+It tells the scheduler:
+
+	"I am willing to pause my execution and give other threads of the same priority a chance to run."
+	
+	yield() is only a scheduler hint.
+	 
+	 It tells the JVM/OS:"I'm willing to let another runnable thread execute."
+	But:
+
+		Scheduler may ignore it.
+		Thread may continue running immediately.
+		No guarantee another thread gets CPU.
+		No communication between threads.
+		No synchronization.
+
+		So it is unreliable for coordination.
+		
+**Important:**
+
+	* It is only a hint to the JVM/OS scheduler.
+	* It is **not guaranteed** that another thread will run.
+	* The same thread may continue execution.
+  
+  that hints to the scheduler that the current thread is willing to pause
+		and allow other runnable threads of the same priority to execute. 
+  
+  the scheduler may immediately select the same thread again. 
+  
+  The thread moves from RUNNING to RUNNABLE state and does not release any locks. Thread move from RUNNINING to RUNNABLE or RUNNABLE 
+  to RUNNING It is not like : WAITING,BLOCKED,TIMED_WAITING
+ 
+ `yield()` is rarely used in modern applications and should not be relied upon for synchronization, ordering, or thread coordination. 
+  
+  It is mainly used in demonstrations, simulations, long-running computations, and situations where a thread voluntarily gives other
+ threads an opportunity to execute.
+
+public class YieldDemo {
+
+    public static void main(String[] args) {
+
+        Runnable task = () -> {
+
+            for(int i = 1; i <= 5; i++) {
+
+                System.out.println(Thread.currentThread().getName()+ " : " + i);
+                Thread.yield();
+            }
+        };
+        new Thread(task, "T1").start();
+        new Thread(task, "T2").start();
+    }
+}
+
+The thread simply goes back to the runnable queue.
+
+# Possible Output
+
+```text
+T1 : 1
+T2 : 1
+T1 : 2
+T2 : 2
+T1 : 3
+T2 : 3
+T1 : 4
+T2 : 4
+T1 : 5
+T2 : 5
+```
+
+or
+
+```text
+T1 : 1
+T1 : 2
+T1 : 3
+T1 : 4
+T1 : 5
+
+T2 : 1
+T2 : 2
+T2 : 3
+T2 : 4
+T2 : 5
+```
+
+# Example with Two Threads
+
+```java
+public class YieldExample {
+
+    public static void main(String[] args) {
+
+        Thread t1 = new Thread(() -> {
+
+            for(int i = 1; i <= 5; i++) {
+
+                System.out.println(
+                        "T1 : " + i);
+
+                Thread.yield();
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            for(int i = 1; i <= 5; i++) {
+
+                System.out.println(
+                        "T2 : " + i);
+
+                Thread.yield();
+            }
+        });
+
+        t1.start();
+        t2.start();
+    }
+}
+```
+
+## Comparison
+
+| Feature          | yield()  | sleep()        |
+| ---------------- | -------- | -------------- |
+| Wait Time        | No       | Yes            |
+| Guaranteed Pause | No       | Yes            |
+| Scheduler Hint   | Yes      | No             |
+| State            | RUNNABLE | TIMED\_WAITING |
+| Lock Released    | No       | No             |
+
+
+# yield() vs join()
+
+ yield(): Give opportunity to other threads.
+ 
+ join(): Wait for another thread to finish.
+
+# Real-Time Scenario 1: Background Logging
+
+```text
+Business Thread vs Logging Thread: Business thread may call:to allow logger execution.
+
+2) 
+	Order Processing: 
+	Logging
+	Order Processing
+	
+3)  CPU Monitor
+	Memory Monitor
+	Business Threads
+	
+	Monitor thread may periodically: to avoid CPU monopolization.	
+	
+4) Real-Time Scenario 4: Long Calculations
+
+	```java
+	for(long i=1;i<=1000000;i++) {
+
+		if(i % 10000 == 0) {
+
+			Thread.yield();
+		}
+	}
+	```
+
+	Allows other threads to get CPU time.
+	
+5) 
+		# Real-Time Scenario 5: Batch Processing
+
+		Suppose:
+
+		```text
+		10000 Records
+		```
+
+		Processing thread:
+
+		```java
+		if(batchCount % 1000 == 0) {
+			Thread.yield();
+		}
+		```
+
+		Allows:
+
+		```text
+		Notification Threads
+		Audit Threads
+		Database Threads
+		```
+
+		to get CPU time.
+------------------------------------------------------------------------------------------------------------
+
+CountDownLatch: One thread waits for N tasks to finish.
+
+	Used when one or more threads must wait until work is completed.
+
+	CountDownLatch latch = new CountDownLatch(3);  --> Waits until count becomes 0.
+	
+		Main thread proceeds only after all workers finish.
+		
+	Examples:
+
+		Application startup
+		Parallel processing
+		Waiting for worker threads
+		
+Semaphore: Need to limit concurrent access.
+
+		Controls access to limited resources.
+
+		Semaphore sem = new Semaphore(2);Only 2 threads can enter simultaneously.
+		
+		Database connections = 10;
+		Only 10 threads can access DB at once.
+		✅ Resource limiting
+		
+		Examples:
+
+			DB connection pool
+			API rate limiting
+			Printer/shared resource
+		
+join(): Guaranteed ordering
+
+
+wait()/notify(): One thread waits for another thread's event 
+
+	Examples:
+
+		Producer-Consumer
+		Event notification
+		Shared object communication
+		
+		
+	Thread.yield() is only a scheduling hint and provides no guarantee that another thread will run. 
+	
+	It should not be used for synchronization, thread ordering, or resource coordination. 
+	
+	For thread communication use wait()/notify(), 
+	
+	for waiting on multiple tasks use CountDownLatch, 
+	
+	for limiting concurrent access use Semaphore, and 
+	
+	for ordering threads use join(). 
+	
+	for wait(), yield() does not release locks and the thread remains in the RUNNABLE state.
+	
+	
+	
+	

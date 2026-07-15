@@ -1,0 +1,234 @@
+If you want to use **Callable**, submit tasks to `ExecutorService`, get back **Future objects**, and store all Futures in a List, here's a complete real-time example.
+
+## Scenario
+
+* List of Customers
+* FixedThreadPool(3)
+* TriggerEmailPolicy implements `Callable<String>`
+* Returns email status
+* Store all `Future<String>` objects in a List
+* Later retrieve results using `future.get()`
+
+### Customer.java
+
+```java
+public class Customer {
+
+    private int id;
+    private String name;
+    private String email;
+
+    public Customer(int id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+}
+```
+
+***
+
+### TriggerEmailPolicy.java
+
+```java
+import java.util.concurrent.Callable;
+
+public class TriggerEmailPolicy implements Callable<String> {
+
+    private Customer customer;
+
+    public TriggerEmailPolicy(Customer customer) {
+        this.customer = customer;
+    }
+
+    @Override
+    public String call() throws Exception {
+
+        System.out.println(
+                Thread.currentThread().getName()
+                        + " Sending Email To "
+                        + customer.getName());
+
+        Thread.sleep(3000);
+
+        return "Email Sent Successfully To "
+                + customer.getName();
+    }
+}
+```
+
+***
+
+### Main.java
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+
+public class Main {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        List<Customer> customers =
+                new ArrayList<>();
+
+        customers.add(
+                new Customer(101,
+                        "Sunil",
+                        "sunil@gmail.com"));
+
+        customers.add(
+                new Customer(102,
+                        "Ravi",
+                        "ravi@gmail.com"));
+
+        customers.add(
+                new Customer(103,
+                        "Kiran",
+                        "kiran@gmail.com"));
+
+        customers.add(
+                new Customer(104,
+                        "Mahesh",
+                        "mahesh@gmail.com"));
+
+        customers.add(
+                new Customer(105,
+                        "Suresh",
+                        "suresh@gmail.com"));
+
+        ExecutorService ex =
+                Executors.newFixedThreadPool(3);
+
+        List<Future<String>> futureList =
+                new ArrayList<>();
+
+        for (Customer customer : customers) {
+
+            TriggerEmailPolicy task =
+                    new TriggerEmailPolicy(customer);
+
+            Future<String> future =
+                    ex.submit(task);
+
+            futureList.add(future);
+        }
+
+        for (Future<String> future : futureList) {
+
+            String result = future.get();
+
+            System.out.println(result);
+        }
+
+        ex.shutdown();
+    }
+}
+```
+
+***
+
+## Internal Execution
+
+Pool:
+
+```text
+Thread-1
+Thread-2
+Thread-3
+```
+
+Tasks:
+
+```text
+Sunil
+Ravi
+Kiran
+Mahesh
+Suresh
+```
+
+### Round 1
+
+```text
+Thread-1 -> Sunil
+Thread-2 -> Ravi
+Thread-3 -> Kiran
+```
+
+Queue:
+
+```text
+Mahesh
+Suresh
+```
+
+### Round 2
+
+```text
+Thread-1 -> Mahesh
+Thread-2 -> Suresh
+```
+
+***
+
+## Possible Output
+
+```text
+pool-1-thread-1 Sending Email To Sunil
+pool-1-thread-2 Sending Email To Ravi
+pool-1-thread-3 Sending Email To Kiran
+
+pool-1-thread-1 Sending Email To Mahesh
+pool-1-thread-2 Sending Email To Suresh
+
+Email Sent Successfully To Sunil
+Email Sent Successfully To Ravi
+Email Sent Successfully To Kiran
+Email Sent Successfully To Mahesh
+Email Sent Successfully To Suresh
+```
+
+***
+
+## Why Store Future Objects in a List?
+
+```java
+List<Future<String>> futureList =
+        new ArrayList<>();
+```
+
+Because each submitted task returns a separate `Future`.
+
+```java
+Future<String> future =
+        ex.submit(task);
+```
+
+You store all Futures and later retrieve their results.
+
+```java
+for(Future<String> future : futureList){
+    System.out.println(future.get());
+}
+```
+
+***
+
+## Interview Answer
+
+> When a Callable task is submitted using `ExecutorService.submit()`, it returns a `Future` object. If multiple tasks are submitted, their corresponding Future objects are typically stored in a `List<Future<T>>`. Later, `future.get()` is used to retrieve the result returned by each Callable task after execution completes. This approach is commonly used for parallel processing of database queries, email notifications, report generation, and API calls.

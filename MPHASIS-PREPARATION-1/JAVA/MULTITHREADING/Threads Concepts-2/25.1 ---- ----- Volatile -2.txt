@@ -1,0 +1,409 @@
+# How Does `volatile` Affect Performance?
+
+This is a very common follow-up interview question after discussing `volatile`.
+
+## Short Answer
+
+> `volatile` is generally faster than `synchronized` because it does not acquire or release locks. 
+However, it is slower than a normal variable because every read and write must be visible across threads.
+
+***
+
+# Normal Variable Performance
+
+Example:
+
+```java
+int count = 10;
+```
+
+Thread may read from:
+
+```text
+CPU Cache
+```
+
+instead of:
+
+```text
+Main Memory
+```
+
+This is very fast.
+
+Flow:
+
+```text
+CPU Cache
+   ↓
+Read Value
+```
+
+***
+
+# Volatile Variable Performance
+
+Example:
+
+```java
+volatile int count = 10;
+```
+
+When reading:
+
+```text
+Do not trust local cache
+```
+
+When writing:
+
+```text
+Immediately update Main Memory
+```
+
+Flow:
+
+```text
+Main Memory
+      ↓
+Read
+      ↓
+Update
+      ↓
+Main Memory
+```
+
+Extra memory synchronization work is required.
+
+So:
+
+```text
+Volatile slower than normal variable
+```
+
+but
+
+```text
+Volatile faster than synchronized
+```
+
+***
+
+# Performance Comparison
+
+## Normal Variable
+
+```java
+int count;
+```
+
+Pros:
+
+✅ Fastest
+
+Cons:
+
+❌ Visibility problem
+
+***
+
+## Volatile Variable
+
+```java
+volatile int count;
+```
+
+Pros:
+
+✅ Visibility guaranteed
+
+✅ No locking overhead
+
+Cons:
+
+❌ Slightly slower than normal variable
+
+❌ No atomicity
+
+***
+
+## Synchronized
+
+```java
+synchronized(this) {
+    count++;
+}
+```
+
+Pros:
+
+✅ Visibility
+
+✅ Atomicity
+
+✅ Thread Safety
+
+Cons:
+
+❌ Lock acquisition overhead
+
+❌ Context switching
+
+❌ Slower than volatile
+
+***
+
+# Performance Ranking
+
+```text
+Normal Variable
+        ↓ Fastest
+
+Volatile
+        ↓
+
+AtomicInteger
+        ↓
+
+Synchronized
+        ↓ Slowest
+```
+
+In general interview discussions.
+
+***
+
+# Why is Volatile Faster Than Synchronized?
+
+Consider:
+
+```java
+volatile boolean running;
+```
+
+Read:
+
+```java
+if(running) {
+}
+```
+
+No lock is acquired.
+
+No thread blocking.
+
+No waiting queue.
+
+No monitor lock.
+
+Just:
+
+```text
+Read latest value from memory
+```
+
+***
+
+# Why is Synchronized Slower?
+
+Example:
+
+```java
+synchronized(this) {
+
+    count++;
+}
+```
+
+JVM must:
+
+1. Acquire lock
+2. Check lock ownership
+3. Execute code
+4. Release lock
+5. Potentially wake waiting threads
+
+Extra overhead.
+
+***
+
+# Real-Time Example
+
+## Volatile Shutdown Flag
+
+```java
+volatile boolean shutdown = false;
+```
+
+Thread-1:
+
+```java
+while(!shutdown) {
+
+}
+```
+
+Thread-2:
+
+```java
+shutdown = true;
+```
+
+Only visibility is required.
+
+Using:
+
+```java
+volatile
+```
+
+is very efficient.
+
+***
+
+## Synchronized Version
+
+```java
+synchronized(lock) {
+
+    shutdown = true;
+}
+```
+
+Works, but unnecessary lock overhead exists.
+
+***
+
+# Memory Barrier Concept
+
+The JVM inserts something called a **memory barrier** (memory fence) around volatile operations.
+
+Simplified:
+
+```text
+Thread Update
+      ↓
+Memory Barrier
+      ↓
+Main Memory
+```
+
+This ensures:
+
+```text
+Other threads see latest value
+```
+
+Memory barriers have some cost.
+
+Therefore:
+
+```text
+volatile
+```
+
+is not free, but it is much cheaper than locking.
+
+***
+
+# When Volatile Improves Performance
+
+### Good Example
+
+```java
+volatile boolean running;
+```
+
+or
+
+```java
+volatile boolean featureEnabled;
+```
+
+or
+
+```java
+volatile String configVersion;
+```
+
+Only reads and writes.
+
+No calculations.
+
+Excellent use case.
+
+***
+
+# When Volatile Hurts Performance
+
+Example:
+
+```java
+volatile int count;
+
+count++;
+```
+
+Many threads updating repeatedly.
+
+Problems:
+
+* Still has race conditions
+* Lots of memory synchronization
+* Better solution is often:
+
+```java
+AtomicInteger
+```
+
+Example:
+
+```java
+AtomicInteger count =
+        new AtomicInteger();
+
+count.incrementAndGet();
+```
+
+***
+
+# Interview Question
+
+### Is volatile always faster than synchronized?
+
+**For simple reads/writes, yes.**
+
+Example:
+
+```java
+volatile boolean flag;
+```
+
+is usually much faster than:
+
+```java
+synchronized(this) {
+    return flag;
+}
+```
+
+because no locking happens.
+
+***
+
+### Is volatile faster than a normal variable?
+
+**No.**
+
+Normal variables are fastest because they can be cached locally by CPU/JVM.
+
+***
+
+# Interview Answer
+
+> `volatile` provides memory visibility without using locks. Because it avoids lock acquisition and release, 
+it is generally faster than `synchronized`. 
+However, volatile reads and writes require memory synchronization, making them slightly slower than ordinary variables. 
+Volatile is best used for shared flags and status variables where visibility is required but atomicity is not.
+ For operations such as increment, decrement, or balance updates, volatile is not sufficient because it does not prevent 
+ race conditions.

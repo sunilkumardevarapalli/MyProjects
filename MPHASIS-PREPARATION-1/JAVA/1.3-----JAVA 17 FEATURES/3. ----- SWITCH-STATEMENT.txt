@@ -1,0 +1,617 @@
+
+
+SWITCH:
+
+	. Allow Data types:
+	
+		Primitive types ( byte,short,char,int) only not suport long double,float,boolean
+		string,
+		enum
+		wraper objects
+		objects
+		record,
+		patteren matching with instance of
+		
+	.Can return value
+	
+	.Explicitly return using Yeald
+	
+	.no break needed. -> with this fall throuh can handle
+	
+	.Patteren mathching suport
+	. Multiple values can mention in one case
+	.break removed
+	
+	.use one style : or ->
+	
+		.case String s->
+		 case Object o->
+		 
+		 wrong:
+			case Object
+			case String
+			
+			top-down
+		
+------------------------------------------------
+
+
+Java 17 introduced **Switch Expressions** (standardized) and laid the groundwork for **Pattern Matching for switch** (preview in Java 17, finalized later). These are very common interview topics.
+
+---
+
+# 1. Traditional Switch (Java 8)
+
+```java
+int day = 2;
+
+switch(day) {
+
+    case 1:
+        System.out.println("Monday");
+        break;
+
+    case 2:
+        System.out.println("Tuesday");
+        break;
+
+    default:
+        System.out.println("Invalid");
+}
+```
+
+Problems
+
+* break mandatory
+* fall-through issue
+* cannot return value directly
+* less readable
+
+---
+
+# 2. Switch Expression (Java 17)
+
+```java
+int day = 2;
+
+String result = switch(day) {
+
+    case 1 -> "Monday";
+
+    case 2 -> "Tuesday";
+
+    default -> "Invalid";
+};
+
+System.out.println(result);
+```
+
+Output
+
+```
+Tuesday
+```
+
+No break required.
+
+---
+
+# 3. Switch Returning Value
+
+```java
+String grade = "A";
+
+int marks = switch(grade){
+
+    case "A" -> 90;
+
+    case "B" -> 80;
+
+    case "C" -> 70;
+
+    default -> 0;
+};
+
+System.out.println(marks);
+```
+
+Output
+
+```
+90
+```
+
+---
+
+# 4. Multiple Statements using `yield`
+
+```java
+String grade = "A";
+
+int marks = switch(grade){
+
+    case "A" -> {
+
+        System.out.println("Excellent");
+
+        yield 90;
+    }
+
+    case "B" -> {
+
+        System.out.println("Good");
+
+        yield 80;
+    }
+
+    default -> {
+
+        yield 0;
+    }
+};
+
+System.out.println(marks);
+```
+
+Output
+
+```
+Excellent
+90
+```
+
+`yield` returns a value from a switch block.
+
+---
+
+# 5. Multiple Case Labels
+
+```java
+int day = 6;
+
+String result = switch(day){
+
+    case 1,2,3,4,5 -> "Weekday";
+
+    case 6,7 -> "Weekend";
+
+    default -> "Invalid";
+};
+
+System.out.println(result);
+```
+
+Output
+
+```
+Weekend
+```
+
+---
+
+# 6. No Break Needed
+
+```java
+int value = 2;
+
+switch(value){
+
+    case 1 -> System.out.println("One");
+
+    case 2 -> System.out.println("Two");
+
+    case 3 -> System.out.println("Three");
+}
+```
+
+Output
+
+```
+Two
+```
+
+No fall-through.
+
+---
+
+# 7. Traditional Fall-through
+
+```java
+switch(value){
+
+    case 1:
+    case 2:
+    case 3:
+        System.out.println("Small");
+        break;
+}
+```
+
+Equivalent Java 17
+
+```java
+switch(value){
+
+    case 1,2,3 -> System.out.println("Small");
+}
+```
+
+---
+
+# 8. Supported Data Types
+
+## byte
+
+```java
+byte b = 1;
+
+switch(b){
+
+    case 1 -> System.out.println("One");
+
+    default -> {}
+}
+```
+
+---
+
+## short
+
+```java
+short s = 10;
+
+switch(s){
+
+    case 10 -> System.out.println("Ten");
+
+    default -> {}
+}
+```
+
+---
+
+## char
+
+```java
+char c='A';
+
+switch(c){
+
+    case 'A' -> System.out.println("Apple");
+
+    default -> {}
+}
+```
+
+---
+
+## int
+
+```java
+int n=100;
+
+switch(n){
+
+    case 100 -> System.out.println("Hundred");
+
+    default -> {}
+}
+```
+
+---
+
+## String
+
+```java
+String name="Java";
+
+switch(name){
+
+    case "Java" -> System.out.println("Programming");
+
+    case "Python" -> System.out.println("Scripting");
+
+    default -> {}
+}
+```
+
+---
+
+## Enum
+
+```java
+enum Day{
+
+    MONDAY,TUESDAY,WEDNESDAY
+}
+```
+
+```java
+Day day=Day.MONDAY;
+
+switch(day){
+
+    case MONDAY -> System.out.println("Monday");
+
+    case TUESDAY -> System.out.println("Tuesday");
+
+    default -> {}
+}
+```
+
+---
+
+# 9. Wrapper Classes (Java 17)
+
+```java
+Integer i = 10;
+
+switch(i){
+
+    case 10 -> System.out.println("Ten");
+
+    default -> {}
+}
+```
+
+Also works with:
+
+```
+Byte
+Short
+Character
+Integer
+```
+
+Not supported:
+
+```
+Long
+Float
+Double
+Boolean
+```
+
+---
+
+# 10. NOT Supported
+
+```java
+long l=100L;
+
+switch(l){
+
+}
+```
+
+Compile Error
+
+---
+
+```java
+double d=12.5;
+
+switch(d){
+
+}
+```
+
+Compile Error
+
+---
+
+```java
+boolean b=true;
+
+switch(b){
+
+}
+```
+
+Compile Error
+
+---
+
+# 11. Switch Expression with Objects (Pattern Matching – Preview in Java 17)
+
+```java
+Object obj="Java";
+
+String result=switch(obj){
+
+    case String s -> "String : "+s;
+
+    default -> "Unknown";
+};
+
+System.out.println(result);
+```
+
+---
+
+# 12. Integer Pattern
+
+```java
+Object obj=100;
+
+String result=switch(obj){
+
+    case Integer i -> "Integer : "+i;
+
+    default -> "Unknown";
+};
+```
+
+---
+
+# 13. Record Pattern *(Available in Java 21, not Java 17)*
+
+```java
+record Employee(int id,String name){}
+```
+
+```java
+Object obj=new Employee(1,"John");
+
+String result=switch(obj){
+
+    case Employee(int id,String name)
+            -> id+" "+name;
+
+    default -> "Unknown";
+};
+```
+
+---
+
+# 14. Pattern Matching Order
+
+Correct
+
+```java
+switch(obj){
+
+    case String s ->
+
+    case Object o ->
+
+}
+```
+
+Wrong
+
+```java
+switch(obj){
+
+    case Object o ->
+
+    case String s ->
+}
+```
+
+Reason
+
+```
+Object is parent of String.
+
+String case becomes unreachable.
+```
+
+---
+
+# 15. Guarded Pattern (Java 21)
+
+```java
+Object obj="Java";
+
+switch(obj){
+
+    case String s when s.length()>5
+            -> System.out.println("Long");
+
+    case String s
+            -> System.out.println("Short");
+
+    default -> {}
+}
+```
+
+---
+
+# 16. Using `:` Style
+
+```java
+switch(day){
+
+    case 1:
+        System.out.println("Monday");
+        break;
+
+    default:
+        break;
+}
+```
+
+---
+
+# 17. Using `->` Style
+
+```java
+switch(day){
+
+    case 1 -> System.out.println("Monday");
+
+    default -> System.out.println("Invalid");
+}
+```
+
+---
+
+# 18. Mixing `:` and `->`
+
+```java
+switch(day){
+
+    case 1:
+        System.out.println("One");
+
+    case 2 -> System.out.println("Two");
+}
+```
+
+Compile Error.
+
+Use only one style within a switch statement.
+
+---
+
+# 19. `yield` vs `return`
+
+```java
+int result = switch(day){
+
+    case 1 -> 10;
+
+    case 2 -> {
+
+        yield 20;
+    }
+
+    default -> 0;
+};
+```
+
+`yield` returns a value from the switch expression.
+
+`return` returns from the method.
+
+---
+
+# 20. Interview Summary
+
+| Feature                                           | Java 8           | Java 17                                            |
+| ------------------------------------------------- | ---------------- | -------------------------------------------------- |
+| Returns value                                     | ❌                | ✅                                                  |
+| `yield`                                           | ❌                | ✅                                                  |
+| `break` required                                  | ✅                | ❌ (with `->`)                                      |
+| Fall-through                                      | ✅                | ❌ (with `->`)                                      |
+| Multiple case labels                              | Limited          | ✅ (`case 1,2,3 ->`)                                |
+| Switch on `String`                                | ✅                | ✅                                                  |
+| Switch on `enum`                                  | ✅                | ✅                                                  |
+| Switch on `byte`, `short`, `char`, `int`          | ✅                | ✅                                                  |
+| Switch on `Byte`, `Short`, `Character`, `Integer` | ✅ (via unboxing) | ✅                                                  |
+| Switch on `long`, `float`, `double`, `boolean`    | ❌                | ❌                                                  |
+| Pattern matching for switch                       | ❌                | **Preview** (Java 17), finalized in later versions |
+| Record patterns                                   | ❌                | ❌ (introduced later, finalized in Java 21)         |
+| Can mix `:` and `->`                              | ❌                | ❌                                                  |
+
+### Note about pattern matching
+
+Some examples you listed, such as:
+
+```java
+case String s ->
+case Object o ->
+```
+
+are **not standard Java 17 features**. They were available only as a **preview feature** in Java 17 and became fully supported in later Java versions (with additional enhancements in Java 21). If you're specifically targeting Java 17 interviews, it's good to mention that distinction.

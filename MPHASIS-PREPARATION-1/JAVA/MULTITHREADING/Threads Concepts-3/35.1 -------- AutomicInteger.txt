@@ -1,0 +1,523 @@
+# 1. Example Using `getAndAdd()`
+
+`getAndAdd(value)`:
+
+```text
+Return current value
+Then add the specified value
+```
+
+## Simple Example
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        AtomicInteger count =
+                new AtomicInteger(100);
+
+        int oldValue = count.getAndAdd(50);
+
+        System.out.println(
+                "Old Value : " + oldValue);
+
+        System.out.println(
+                "Current Value : " + count.get());
+    }
+}
+```
+
+### Output
+
+```text
+Old Value : 100
+Current Value : 150
+```
+
+***
+
+## Two Threads Example
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicDemo {
+
+    public static void main(String[] args)
+            throws InterruptedException {
+
+        AtomicInteger count =
+                new AtomicInteger(0);
+
+        Thread t1 = new Thread(() -> {
+
+            for(int i=1;i<=1000;i++) {
+
+                count.getAndAdd(1);
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            for(int i=1;i<=1000;i++) {
+
+                count.getAndAdd(1);
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        System.out.println(
+                "Final Count : "
+                        + count.get());
+    }
+}
+```
+
+### Output
+
+```text
+Final Count : 2000
+```
+
+***
+
+# Difference Between `addAndGet()` and `getAndAdd()`
+
+## addAndGet()
+
+```java
+AtomicInteger count =
+        new AtomicInteger(100);
+
+int value =
+        count.addAndGet(50);
+```
+
+Output:
+
+```text
+value = 150
+count = 150
+```
+
+Flow:
+
+```text
+Add First
+Return Later
+```
+
+***
+
+## getAndAdd()
+
+```java
+AtomicInteger count =
+        new AtomicInteger(100);
+
+int value =
+        count.getAndAdd(50);
+```
+
+Output:
+
+```text
+value = 100
+count = 150
+```
+
+Flow:
+
+```text
+Return First
+Add Later
+```
+
+***
+
+# 2. What is CAS in AtomicInteger?
+
+CAS = **Compare And Swap**
+
+This is the core mechanism behind `AtomicInteger`.
+
+Instead of using locks:
+
+```java
+synchronized
+```
+
+AtomicInteger uses:
+
+```text
+Compare
+↓
+Swap
+```
+
+operations provided by the CPU.
+
+***
+
+## Problem Without CAS
+
+Suppose:
+
+```java
+count++;
+```
+
+Current value:
+
+```text
+count = 0
+```
+
+### Thread-1
+
+```text
+Read 0
+```
+
+### Thread-2
+
+```text
+Read 0
+```
+
+### Thread-1
+
+```text
+Write 1
+```
+
+### Thread-2
+
+```text
+Write 1
+```
+
+Expected:
+
+```text
+2
+```
+
+Actual:
+
+```text
+1
+```
+
+Race Condition.
+
+***
+
+# CAS Solution
+
+Current value:
+
+```text
+count = 0
+```
+
+### Thread-1
+
+```text
+Expected : 0
+New Value : 1
+```
+
+CAS:
+
+```text
+Current value still 0?
+YES
+```
+
+Update:
+
+```text
+count = 1
+```
+
+Success ✅
+
+***
+
+### Thread-2
+
+Now CAS checks:
+
+```text
+Expected : 0
+```
+
+Current value:
+
+```text
+1
+```
+
+Match?
+
+```text
+NO
+```
+
+Update fails.
+
+Thread-2 retries automatically.
+
+Next attempt:
+
+```text
+Expected : 1
+New Value : 2
+```
+
+Success ✅
+
+Final:
+
+```text
+count = 2
+```
+
+No lock required.
+
+***
+
+# CAS Visualization
+
+```text
+Thread-1
+---------
+Expected : 10
+Current  : 10
+Match    : YES
+Update   : 11
+
+Thread-2
+---------
+Expected : 10
+Current  : 11
+Match    : NO
+Retry
+```
+
+***
+
+# Why CAS is Faster?
+
+### synchronized
+
+```text
+Acquire Lock
+↓
+Execute
+↓
+Release Lock
+```
+
+Threads may block.
+
+***
+
+### CAS
+
+```text
+Read
+↓
+Compare
+↓
+Update
+↓
+Retry if needed
+```
+
+No blocking most of the time.
+
+***
+
+# 3. When to Use `incrementAndGet()`?
+
+Use when you need:
+
+```text
+Increment the value
+AND
+Immediately use the updated value
+```
+
+***
+
+## Example: Request Counter
+
+```java
+AtomicInteger requestCount =
+        new AtomicInteger();
+```
+
+```java
+int currentRequest =
+        requestCount.incrementAndGet();
+
+System.out.println(
+        "Request Number : "
+                + currentRequest);
+```
+
+Output:
+
+```text
+Request Number : 1
+Request Number : 2
+Request Number : 3
+```
+
+***
+
+## Example: Ticket Number Generation
+
+```java
+AtomicInteger ticketNumber =
+        new AtomicInteger(1000);
+
+int ticket =
+        ticketNumber.incrementAndGet();
+
+System.out.println(
+        "Ticket : " + ticket);
+```
+
+Output:
+
+```text
+Ticket : 1001
+```
+
+***
+
+## Example: Employee IDs
+
+```java
+AtomicInteger employeeId =
+        new AtomicInteger(5000);
+
+int id =
+        employeeId.incrementAndGet();
+```
+
+Output:
+
+```text
+5001
+```
+
+***
+
+# When to Use `getAndIncrement()` Instead?
+
+Use when you need:
+
+```text
+Current value first
+Then increment
+```
+
+Example:
+
+```java
+AtomicInteger sequence =
+        new AtomicInteger(1);
+
+int current =
+        sequence.getAndIncrement();
+```
+
+Output:
+
+```text
+current = 1
+sequence = 2
+```
+
+Useful when:
+
+```text
+Existing value is needed
+before moving to next value.
+```
+
+***
+
+# Quick Comparison
+
+### incrementAndGet()
+
+```java
+count.incrementAndGet();
+```
+
+Flow:
+
+```text
+Increment
+↓
+Return New Value
+```
+
+Example:
+
+```text
+10 → 11
+Returns 11
+```
+
+***
+
+### getAndIncrement()
+
+```java
+count.getAndIncrement();
+```
+
+Flow:
+
+```text
+Return Current Value
+↓
+Increment
+```
+
+Example:
+
+```text
+10 → 11
+Returns 10
+```
+
+***
+
+# Interview Answer
+
+> `getAndAdd(n)` returns the current value and then atomically adds `n`, whereas `addAndGet(n)` 
+adds first and returns the updated value. 
+
+`AtomicInteger` achieves thread safety using CAS (Compare-And-Swap), 
+
+a lock-free algorithm that checks whether a value has changed before updating it. 
+If another thread modifies the value, the operation retries automatically.
+
+ `incrementAndGet()`
+ should be used when you need the incremented value immediately, such as generating sequence numbers,
+ request IDs, ticket numbers, or counters in concurrent applications.

@@ -1,0 +1,395 @@
+# AtomicInteger Example with 2 Threads
+
+`AtomicInteger` provides thread-safe operations without using `synchronized`.
+
+Advantages:
+
+* Thread Safe
+* No Race Condition
+* Better Performance than synchronized for counters
+* Uses CAS (Compare And Swap) internally
+
+***
+
+# Example 1: Using `incrementAndGet()`
+
+Two threads increment the counter 1000 times each.
+
+Expected Result:
+
+```text
+1000 + 1000 = 2000
+```
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicDemo {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        AtomicInteger count =
+                new AtomicInteger(0);
+
+        Thread t1 = new Thread(() -> {
+
+            for(int i = 1; i <= 1000; i++) {
+
+                count.incrementAndGet();
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            for(int i = 1; i <= 1000; i++) {
+
+                count.incrementAndGet();
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        System.out.println(
+                "Final Count : "
+                        + count.get());
+    }
+}
+```
+
+### Output
+
+```text
+Final Count : 2000
+```
+
+***
+
+# Example 2: Using `getAndIncrement()`
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicDemo {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        AtomicInteger count =
+                new AtomicInteger(0);
+
+        Thread t1 = new Thread(() -> {
+
+            for(int i = 1; i <= 1000; i++) {
+
+                count.getAndIncrement();
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            for(int i = 1; i <= 1000; i++) {
+
+                count.getAndIncrement();
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        System.out.println(
+                "Final Count : "
+                        + count.get());
+    }
+}
+```
+
+### Output
+
+```text
+Final Count : 2000
+```
+
+***
+
+# Difference Between `incrementAndGet()` and `getAndIncrement()`
+
+## incrementAndGet()
+
+```java
+AtomicInteger count =
+        new AtomicInteger(100);
+
+int value =
+        count.incrementAndGet();
+```
+
+Steps:
+
+```text
+Increment First
+Then Return
+```
+
+Result:
+
+```text
+count = 101
+value = 101
+```
+
+***
+
+## getAndIncrement()
+
+```java
+AtomicInteger count =
+        new AtomicInteger(100);
+
+int value =
+        count.getAndIncrement();
+```
+
+Steps:
+
+```text
+Return First
+Then Increment
+```
+
+Result:
+
+```text
+count = 101
+value = 100
+```
+
+***
+
+# Example Showing Difference
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        AtomicInteger count =
+                new AtomicInteger(10);
+
+        System.out.println(
+                count.incrementAndGet());
+
+        System.out.println(
+                count.getAndIncrement());
+
+        System.out.println(
+                count.get());
+    }
+}
+```
+
+### Output
+
+```text
+11
+11
+12
+```
+
+Explanation:
+
+```java
+count.incrementAndGet();
+```
+
+Returned:
+
+```text
+11
+```
+
+Count became:
+
+```text
+11
+```
+
+***
+
+```java
+count.getAndIncrement();
+```
+
+Returned:
+
+```text
+11
+```
+
+Then incremented to:
+
+```text
+12
+```
+
+***
+
+# Example Using `addAndGet()`
+
+Adds a value and returns updated result.
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        AtomicInteger count =
+                new AtomicInteger(100);
+
+        int result =
+                count.addAndGet(50);
+
+        System.out.println(
+                "Result : " + result);
+
+        System.out.println(
+                "Count : " + count.get());
+    }
+}
+```
+
+### Output
+
+```text
+Result : 150
+Count : 150
+```
+
+***
+
+# Example: Two Threads Using `addAndGet()`
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class AtomicDemo {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        AtomicInteger count =
+                new AtomicInteger(0);
+
+        Thread t1 = new Thread(() -> {
+
+            for(int i = 1; i <= 1000; i++) {
+
+                count.addAndGet(1);
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+
+            for(int i = 1; i <= 1000; i++) {
+
+                count.addAndGet(1);
+            }
+        });
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
+        System.out.println(
+                "Final Count : "
+                        + count.get());
+    }
+}
+```
+
+### Output
+
+```text
+Final Count : 2000
+```
+
+***
+
+# Most Common AtomicInteger Methods
+
+```java
+count.get();
+```
+
+Get current value.
+
+***
+
+```java
+count.set(100);
+```
+
+Set value.
+
+***
+
+```java
+count.incrementAndGet();
+```
+
+Increment then return.
+
+***
+
+```java
+count.getAndIncrement();
+```
+
+Return then increment.
+
+***
+
+```java
+count.decrementAndGet();
+```
+
+Decrement then return.
+
+***
+
+```java
+count.addAndGet(50);
+```
+
+Add value then return.
+
+***
+
+```java
+count.getAndAdd(50);
+```
+
+Return old value then add.
+
+***
+
+# Interview Answer
+
+> `AtomicInteger` provides lock-free, thread-safe operations on integers.
+ It avoids race conditions using CAS (Compare-And-Swap) internally. Methods like `incrementAndGet()` 
+ increment first and return the updated value, while `getAndIncrement()` returns the current value and then increments it. 
+ `addAndGet(n)` adds a specified value atomically and returns the updated result. 
+ It is commonly used for counters, sequence generators, request counts, and statistics in multithreaded applications.

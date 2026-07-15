@@ -1,0 +1,468 @@
+# 1. SingleThreadExecutor Code Example
+
+## Customer Task
+
+```java
+class EmailTask implements Runnable {
+
+    private String customerName;
+
+    public EmailTask(String customerName) {
+        this.customerName = customerName;
+    }
+
+    @Override
+    public void run() {
+
+        System.out.println(
+                Thread.currentThread().getName()
+                + " Started Email For "
+                + customerName);
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(
+                Thread.currentThread().getName()
+                + " Email Sent To "
+                + customerName);
+    }
+}
+```
+
+## Main Class
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        ExecutorService ex =
+                Executors.newSingleThreadExecutor();
+
+        ex.execute(new EmailTask("Sunil"));
+        ex.execute(new EmailTask("Ravi"));
+        ex.execute(new EmailTask("Kiran"));
+        ex.execute(new EmailTask("Mahesh"));
+
+        ex.shutdown();
+    }
+}
+```
+
+## Output
+
+```text
+pool-1-thread-1 Started Email For Sunil
+pool-1-thread-1 Email Sent To Sunil
+
+pool-1-thread-1 Started Email For Ravi
+pool-1-thread-1 Email Sent To Ravi
+
+pool-1-thread-1 Started Email For Kiran
+pool-1-thread-1 Email Sent To Kiran
+
+pool-1-thread-1 Started Email For Mahesh
+pool-1-thread-1 Email Sent To Mahesh
+```
+
+Notice:
+
+```text
+Same thread
+pool-1-thread-1
+```
+
+is executing all tasks.
+
+***
+
+# 2. How Thread Reuse Works in FixedThreadPool
+
+Suppose:
+
+```java
+ExecutorService ex =
+        Executors.newFixedThreadPool(3);
+```
+
+Pool Creation:
+
+```text
+Thread-1
+Thread-2
+Thread-3
+```
+
+Now submit:
+
+```text
+Task1
+Task2
+Task3
+Task4
+Task5
+Task6
+```
+
+### First Round
+
+```text
+Thread-1 → Task1
+
+Thread-2 → Task2
+
+Thread-3 → Task3
+```
+
+### After Thread-1 Completes
+
+Instead of creating:
+
+```text
+New Thread-4
+```
+
+Java reuses the same worker:
+
+```text
+Thread-1 → Task4
+```
+
+### After Thread-2 Completes
+
+```text
+Thread-2 → Task5
+```
+
+### After Thread-3 Completes
+
+```text
+Thread-3 → Task6
+```
+
+***
+
+## Visual Representation
+
+```text
+Pool Created Once
+
+Thread-1
+Thread-2
+Thread-3
+```
+
+Reuse:
+
+```text
+Thread-1
+   ↓
+Task1
+   ↓
+Task4
+   ↓
+Task7
+   ↓
+Task10
+```
+
+Same thread keeps working.
+
+***
+
+## Why Reuse?
+
+Creating a thread is expensive.
+
+Without thread pool:
+
+```text
+1000 Tasks
+↓
+1000 Threads
+```
+
+Problems:
+
+* Memory Consumption
+* CPU Overhead
+* Context Switching
+* Slow Performance
+
+With thread pool:
+
+```text
+1000 Tasks
+↓
+10 Threads
+↓
+Reuse
+```
+
+Benefits:
+
+✅ Better Performance
+
+✅ Better Memory Usage
+
+✅ Better Scalability
+
+***
+
+# 3. How Queue Works in FixedThreadPool
+
+Example:
+
+```java
+ExecutorService ex =
+        Executors.newFixedThreadPool(2);
+```
+
+Submit:
+
+```text
+Task1
+Task2
+Task3
+Task4
+Task5
+```
+
+***
+
+### Immediate Execution
+
+```text
+Thread-1 → Task1
+
+Thread-2 → Task2
+```
+
+***
+
+### Queue
+
+Remaining tasks:
+
+```text
+Task3
+Task4
+Task5
+```
+
+stay in queue.
+
+```text
+Queue
+
+Task3
+Task4
+Task5
+```
+
+***
+
+### Thread-1 Finishes
+
+```text
+Thread-1 → Task3
+```
+
+Queue:
+
+```text
+Task4
+Task5
+```
+
+***
+
+### Thread-2 Finishes
+
+```text
+Thread-2 → Task4
+```
+
+Queue:
+
+```text
+Task5
+```
+
+***
+
+### Thread-1 Finishes Again
+
+```text
+Thread-1 → Task5
+```
+
+Queue:
+
+```text
+Empty
+```
+
+***
+
+# How Queue Size Affects Performance
+
+## Case 1: Small Number of Tasks
+
+```text
+Pool Size = 5
+Tasks = 10
+```
+
+Queue:
+
+```text
+Small
+```
+
+Performance:
+
+```text
+Good
+```
+
+Minimal waiting.
+
+***
+
+## Case 2: Large Number of Tasks
+
+```text
+Pool Size = 5
+Tasks = 10,000
+```
+
+Queue:
+
+```text
+9995 tasks waiting
+```
+
+Performance impact:
+
+* Increased waiting time
+* Increased memory usage
+* Longer response time
+
+***
+
+## Example
+
+### FixedThreadPool(2)
+
+Tasks:
+
+```text
+1000
+```
+
+Each task:
+
+```text
+5 seconds
+```
+
+Execution:
+
+```text
+2 at a time
+998 waiting
+```
+
+Queue becomes very large.
+
+***
+
+# Real-Time Example
+
+### Insurance Policy Emails
+
+Pool:
+
+```java
+Executors.newFixedThreadPool(5);
+```
+
+Customers:
+
+```text
+10,000 Customers
+```
+
+Only:
+
+```text
+5 emails
+```
+
+can be processed simultaneously.
+
+Remaining:
+
+```text
+9,995 emails
+```
+
+wait in queue.
+
+***
+
+# Problem with Huge Queue
+
+If tasks keep coming faster than workers process them:
+
+```text
+100 Tasks/sec added
+
+10 Tasks/sec processed
+```
+
+Queue grows continuously.
+
+Result:
+
+```text
+Higher Memory Usage
+Long Delays
+Possible OutOfMemoryError
+```
+
+***
+
+# Interview Question
+
+### Why is FixedThreadPool dangerous in high-load systems?
+
+Because:
+
+```java
+Executors.newFixedThreadPool(n)
+```
+
+uses an unbounded queue internally.
+
+If tasks arrive very fast:
+
+```text
+Queue size grows endlessly
+```
+
+which can eventually consume lots of memory.
+
+***
+
+# Interview Answer
+
+> `SingleThreadExecutor` uses one worker thread and executes tasks sequentially in submission order. `FixedThreadPool` creates a fixed number of worker threads and reuses them for multiple tasks instead of creating new threads repeatedly. When all worker threads are busy, incoming tasks are placed into an internal queue. A larger queue means more waiting tasks, higher memory consumption, and increased response time. Thread pooling improves performance by reusing threads and reducing thread creation overhead.

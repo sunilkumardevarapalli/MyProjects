@@ -1,0 +1,446 @@
+# 1. Dynamic Interval Scheduling Example
+
+Suppose you want:
+
+```text
+1st Execution -> After 5 sec
+2nd Execution -> After 10 sec
+3rd Execution -> After 20 sec
+4th Execution -> After 40 sec
+```
+
+This is called **Exponential Backoff**.
+
+## Complete Example
+
+```java
+import java.util.concurrent.*;
+
+public class DynamicScheduler {
+
+    private static ScheduledExecutorService executor =
+            Executors.newScheduledThreadPool(1);
+
+    private static int delay = 5;
+
+    public static void main(String[] args) {
+
+        scheduleNextExecution();
+    }
+
+    private static void scheduleNextExecution() {
+
+        executor.schedule(() -> {
+
+            System.out.println(
+                    "Executing Task at delay : "
+                            + delay + " seconds");
+
+            delay = delay * 2;
+
+            scheduleNextExecution();
+
+        }, delay, TimeUnit.SECONDS);
+    }
+}
+```
+
+### Output
+
+```text
+Executing Task at delay : 5 seconds
+Executing Task at delay : 10 seconds
+Executing Task at delay : 20 seconds
+Executing Task at delay : 40 seconds
+Executing Task at delay : 80 seconds
+```
+
+***
+
+# Real-Time Retry Example
+
+### Payment Gateway Retry
+
+```java
+import java.util.concurrent.*;
+
+public class PaymentRetryService {
+
+    private static final ScheduledExecutorService executor =
+            Executors.newScheduledThreadPool(1);
+
+    private static int retryCount = 1;
+
+    public static void main(String[] args) {
+
+        retryPayment(5);
+    }
+
+    private static void retryPayment(int delay) {
+
+        executor.schedule(() -> {
+
+            System.out.println(
+                    "Retry Attempt : "
+                            + retryCount);
+
+            boolean success = false;
+
+            if(success) {
+
+                System.out.println(
+                        "Payment Success");
+
+                executor.shutdown();
+
+                return;
+            }
+
+            retryCount++;
+
+            retryPayment(delay * 2);
+
+        }, delay, TimeUnit.SECONDS);
+    }
+}
+```
+
+### Execution
+
+```text
+Retry 1 -> 5 sec
+Retry 2 -> 10 sec
+Retry 3 -> 20 sec
+Retry 4 -> 40 sec
+```
+
+***
+
+# 2. How to Cancel Dynamic Scheduled Tasks?
+
+For any scheduled task:
+
+```java
+ScheduledFuture<?> future
+```
+
+acts as a handle.
+
+You can cancel the task later.
+
+***
+
+## Example
+
+```java
+import java.util.concurrent.*;
+
+public class SchedulerExample {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        ScheduledExecutorService executor =
+                Executors.newScheduledThreadPool(1);
+
+        ScheduledFuture<?> future =
+                executor.scheduleAtFixedRate(
+                        () -> {
+
+                            System.out.println(
+                                    "Running Task");
+
+                        },
+                        0,
+                        5,
+                        TimeUnit.SECONDS);
+
+        Thread.sleep(15000);
+
+        future.cancel(true);
+
+        System.out.println(
+                "Task Cancelled");
+
+        executor.shutdown();
+    }
+}
+```
+
+### Output
+
+```text
+Running Task
+Running Task
+Running Task
+
+Task Cancelled
+```
+
+After cancellation:
+
+```text
+No more executions
+```
+
+***
+
+# Dynamic Scheduler Cancellation Example
+
+Often interviewers ask:
+
+> How do we stop recursive scheduling?
+
+Use a flag.
+
+```java
+import java.util.concurrent.*;
+
+public class DynamicScheduler {
+
+    private static final ScheduledExecutorService executor =
+            Executors.newScheduledThreadPool(1);
+
+    private static boolean stop = false;
+
+    private static int delay = 5;
+
+    public static void main(String[] args)
+            throws Exception {
+
+        scheduleTask();
+
+        Thread.sleep(30000);
+
+        stop = true;
+
+        executor.shutdown();
+    }
+
+    private static void scheduleTask() {
+
+        if(stop) {
+
+            System.out.println(
+                    "Scheduler Stopped");
+
+            return;
+        }
+
+        executor.schedule(() -> {
+
+            System.out.println(
+                    "Executing with Delay "
+                            + delay);
+
+            delay *= 2;
+
+            scheduleTask();
+
+        }, delay, TimeUnit.SECONDS);
+    }
+}
+```
+
+***
+
+# Using ScheduledFuture for Dynamic Scheduling
+
+Store the future reference.
+
+```java
+private static ScheduledFuture<?> future;
+```
+
+```java
+future = executor.schedule(
+        task,
+        delay,
+        TimeUnit.SECONDS);
+```
+
+Later:
+
+```java
+future.cancel(true);
+```
+
+You can stop the next scheduled execution.
+
+***
+
+# 3. Can We Use Cron Expressions?
+
+### Java ScheduledExecutorService
+
+Supports:
+
+```java
+schedule()
+scheduleAtFixedRate()
+scheduleWithFixedDelay()
+```
+
+It does NOT support:
+
+```text
+Cron Expressions
+```
+
+directly.
+
+Example:
+
+```text
+0 0 12 * * ?
+```
+
+will not work with ScheduledExecutorService.
+
+***
+
+# Cron Example (Spring)
+
+In Spring Boot:
+
+```java
+@Scheduled(cron = "0 */2 * * * *")
+public void sendEmails() {
+
+    System.out.println(
+            "Running Every 2 Minutes");
+}
+```
+
+### Meaning
+
+```text
+Every 2 Minutes
+```
+
+***
+
+# Dynamic Cron Example
+
+Spring allows values from configuration.
+
+```java
+@Scheduled(
+        cron = "${email.scheduler.cron}")
+public void triggerEmail() {
+
+}
+```
+
+application.properties
+
+```properties
+email.scheduler.cron=0 */5 * * * *
+```
+
+Runs:
+
+```text
+Every 5 Minutes
+```
+
+Change property:
+
+```properties
+email.scheduler.cron=0 */10 * * * *
+```
+
+Runs:
+
+```text
+Every 10 Minutes
+```
+
+***
+
+# Quartz Scheduler (Enterprise Applications)
+
+For advanced scheduling:
+
+```text
+Cron Expressions
+Calendar Support
+Pause/Resume Jobs
+Cluster Support
+Misfire Handling
+```
+
+Example:
+
+```java
+CronScheduleBuilder.cronSchedule(
+        "0 0/2 * * * ?");
+```
+
+Meaning:
+
+```text
+Every 2 Minutes
+```
+
+***
+
+# Interview Comparison
+
+### ScheduledExecutorService
+
+Use when:
+
+```text
+Fixed Delay
+Fixed Rate
+Simple Scheduling
+```
+
+Examples:
+
+* Cache Refresh
+* Polling
+* Health Checks
+
+***
+
+### Cron
+
+Use when:
+
+```text
+Time-Based Scheduling
+```
+
+Examples:
+
+```text
+Daily 12 AM
+Every Monday
+Every Month End
+Every 2 Minutes
+```
+
+***
+
+### Quartz Scheduler
+
+Use when:
+
+```text
+Enterprise Scheduling
+```
+
+Examples:
+
+* Insurance Policy Renewal
+* Batch Jobs
+* Financial Reports
+* Payroll Processing
+
+***
+
+# Interview Answer
+
+> `ScheduledExecutorService` supports fixed-rate and fixed-delay scheduling but does not support cron expressions directly. For dynamic intervals, developers typically use recursive `schedule()` calls and calculate the next delay programmatically. Dynamic scheduled tasks can be cancelled using `ScheduledFuture.cancel()` or by maintaining a stop flag. If cron-style scheduling is required, frameworks such as Spring Scheduler (`@Scheduled`) or Quartz Scheduler are commonly used.

@@ -1,0 +1,301 @@
+## Optimistic Lock vs Pessimistic Lock
+
+| Feature              | Optimistic Lock                       | Pessimistic Lock                      |
+| -------------------- | ------------------------------------- | ------------------------------------- |
+| Lock Type            | No database lock while reading        | Database lock is acquired immediately |
+| Performance          | Faster                                | Slower                                |
+| Concurrency          | High                                  | Low                                   |
+| Best For             | Mostly read operations, fewer updates | Frequent updates and conflicts        |
+| Database Lock        | No                                    | Yes                                   |
+| Prevents Lost Update | Yes                                   | Yes                                   |
+| Deadlock Chance      | Very Low                              | High                                  |
+| Version Column       | Required                              | Not Required                          |
+
+---
+
+## 1. Optimistic Lock
+
+Optimistic Lock assumes **conflicts are rare**.
+
+No lock is placed when reading the record.
+
+When updating, it checks whether another transaction has modified the record.
+
+If yes, update fails.
+
+### Example
+
+Suppose Employee table
+
+| ID  | Name | Salary | Version |
+| --- | ---- | ------ | ------- |
+| 101 | John | 50000  | 1       |
+
+### Transaction-1
+
+```sql
+Select * from Employee where id=101;
+```
+
+Gets
+
+```
+Salary = 50000
+Version = 1
+```
+
+### Transaction-2
+
+Also reads
+
+```
+Salary = 50000
+Version = 1
+```
+
+---
+
+### Transaction-1 Updates
+
+```sql
+Update Employee
+Set Salary=55000,
+Version=2
+Where id=101
+and Version=1;
+```
+
+Update Success
+
+Database becomes
+
+| Salary | Version |
+| ------ | ------- |
+| 55000  | 2       |
+
+---
+
+### Transaction-2 Tries Update
+
+```sql
+Update Employee
+Set Salary=60000,
+Version=2
+Where id=101
+and Version=1;
+```
+
+No row updated.
+
+Because Version=1 no longer exists.
+
+Application throws
+
+```
+OptimisticLockException
+```
+
+---
+
+## Spring Boot Example
+
+```java
+@Entity
+public class Employee {
+
+    @Id
+    private Long id;
+
+    private String name;
+
+    private double salary;
+
+    @Version
+    private Integer version;
+}
+```
+
+Update
+
+```java
+Employee emp = repository.findById(1L).get();
+
+emp.setSalary(60000);
+
+repository.save(emp);
+```
+
+Hibernate automatically checks version.
+
+---
+
+## Advantages
+
+* High performance
+* Better scalability
+* No database lock
+* Suitable for web applications
+
+---
+
+## Disadvantages
+
+* Update may fail
+* Need retry logic
+
+---
+
+# Pessimistic Lock
+
+Pessimistic Lock assumes
+
+**Conflicts are very common.**
+
+So database locks the row immediately.
+
+No one else can modify it.
+
+---
+
+Example
+
+Transaction-1
+
+```sql
+Select *
+from Employee
+where id=101
+for update;
+```
+
+Row Locked
+
+---
+
+Transaction-2
+
+```sql
+Update Employee
+Set Salary=70000
+Where id=101;
+```
+
+Waits...
+
+Until Transaction-1 commits.
+
+---
+
+Transaction-1
+
+```sql
+Update Employee
+Set Salary=60000
+Where id=101;
+
+Commit;
+```
+
+Lock Released
+
+Now Transaction-2 executes.
+
+---
+
+## Spring Boot Example
+
+```java
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query("select e from Employee e where e.id=:id")
+Employee findEmployee(Long id);
+```
+
+or
+
+```java
+Employee emp = entityManager.find(
+        Employee.class,
+        1L,
+        LockModeType.PESSIMISTIC_WRITE
+);
+```
+
+---
+
+## Advantages
+
+* No update conflicts
+* Data always consistent
+
+---
+
+## Disadvantages
+
+* Slow
+* Deadlock possible
+* Users may wait
+* Lower scalability
+
+---
+
+# Timeline
+
+### Optimistic Lock
+
+```
+T1 Read ---------> Update Success
+
+T2 Read -----------------> Update Fail
+```
+
+---
+
+### Pessimistic Lock
+
+```
+T1 Lock Row ------------ Commit
+
+T2 Wait....................Update
+```
+
+---
+
+# Which One Requires a Lock?
+
+### Optimistic Lock
+
+❌ Does **not** lock the row while reading.
+
+It only checks the version before updating.
+
+---
+
+### Pessimistic Lock
+
+✅ **Requires a database lock.**
+
+The row is locked until the transaction completes.
+
+---
+
+# Which One Should You Use?
+
+| Scenario                                    | Recommended      |
+| ------------------------------------------- | ---------------- |
+| Banking transactions                        | Pessimistic Lock |
+| Ticket booking (limited seats)              | Pessimistic Lock |
+| Inventory management (low stock)            | Pessimistic Lock |
+| Employee management                         | Optimistic Lock  |
+| Student management                          | Optimistic Lock  |
+| E-commerce product details                  | Optimistic Lock  |
+| Social media posts                          | Optimistic Lock  |
+| Mostly read operations                      | Optimistic Lock  |
+| Heavy concurrent updates on the same record | Pessimistic Lock |
+
+---
+
+# Interview Answer (Short)
+
+> **Optimistic Lock** does not lock the database row. It uses a version field (such as `@Version`) to detect concurrent updates. If another transaction has modified the row, the update fails with an optimistic locking exception. It provides high performance and scalability, making it suitable when update conflicts are infrequent.
+>
+> **Pessimistic Lock** acquires a database lock before updating (for example, using `SELECT ... FOR UPDATE` or `LockModeType.PESSIMISTIC_WRITE`). Other transactions must wait until the lock is released. It is appropriate when concurrent update conflicts are common or when strict consistency is required, such as in banking or seat-booking systems.

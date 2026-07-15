@@ -1,0 +1,256 @@
+For **Class-Level Lock**, make the methods `static synchronized`.
+
+### HdfcBank.java
+
+```java
+class HdfcBank {
+
+    private static int accountBalance = 10000;
+
+    public static synchronized void withdraw(int amount) {
+
+        System.out.println(Thread.currentThread().getName()
+                + " trying to withdraw : " + amount);
+
+        if(accountBalance >= amount) {
+
+            accountBalance = accountBalance - amount;
+
+            System.out.println(Thread.currentThread().getName()
+                    + " withdrawn : " + amount);
+
+            System.out.println("Available Balance : "
+                    + accountBalance);
+        } else {
+            System.out.println("Insufficient Balance");
+        }
+    }
+
+    public static synchronized void deposit(int amount) {
+
+        System.out.println(Thread.currentThread().getName()
+                + " trying to deposit : " + amount);
+
+        accountBalance = accountBalance + amount;
+
+        System.out.println(Thread.currentThread().getName()
+                + " deposited : " + amount);
+
+        System.out.println("Available Balance : "
+                + accountBalance);
+    }
+
+    public void profileUpdate() {
+
+        System.out.println(Thread.currentThread().getName()
+                + " profile updated");
+    }
+
+    public void balanceCheck() {
+
+        System.out.println("Balance : "
+                + accountBalance);
+    }
+}
+```
+
+### ATMThread.java
+
+```java
+class ATMThread extends Thread {
+
+    private HdfcBank bank;
+
+    public ATMThread(HdfcBank bank) {
+        this.bank = bank;
+    }
+
+    @Override
+    public void run() {
+        HdfcBank.withdraw(3000);
+    }
+}
+```
+
+### GooglePayThread.java
+
+```java
+class GooglePayThread extends Thread {
+
+    private HdfcBank bank;
+
+    public GooglePayThread(HdfcBank bank) {
+        this.bank = bank;
+    }
+
+    @Override
+    public void run() {
+        HdfcBank.deposit(5000);
+    }
+}
+```
+
+### Main.java
+
+```java
+public class Main {
+
+    public static void main(String[] args) {
+
+        HdfcBank obj1 = new HdfcBank();
+        HdfcBank obj2 = new HdfcBank();
+
+        ATMThread atm = new ATMThread(obj1);
+        GooglePayThread gpay = new GooglePayThread(obj2);
+
+        atm.setName("ATM-Thread");
+        gpay.setName("GooglePay-Thread");
+
+        atm.start();
+        gpay.start();
+    }
+}
+```
+
+***
+
+## What Happens Internally?
+
+You created:
+
+```java
+HdfcBank obj1 = new HdfcBank();
+HdfcBank obj2 = new HdfcBank();
+```
+
+But methods are:
+
+```java
+static synchronized withdraw()
+static synchronized deposit()
+```
+
+The lock is not on `obj1` or `obj2`.
+
+Java acquires:
+
+```java
+HdfcBank.class
+```
+
+lock.
+
+### Execution
+
+```text
+ATMThread ---> withdraw()
+                |
+                | acquires HdfcBank.class lock
+                |
+                V
+             Running
+```
+
+At the same time:
+
+```text
+GooglePayThread ---> deposit()
+                      |
+                      | needs HdfcBank.class lock
+                      |
+                      V
+                   Waiting
+```
+
+Result:
+
+```text
+ATMThread       ✅ Permission
+GooglePayThread ❌ Waiting
+```
+
+After ATMThread completes:
+
+```text
+GooglePayThread ✅ Permission
+```
+
+***
+
+## Interview Trick
+
+Even with:
+
+```java
+HdfcBank obj1 = new HdfcBank();
+HdfcBank obj2 = new HdfcBank();
+```
+
+Only **one thread** can execute because:
+
+```text
+Object count = 2
+Class count  = 1
+```
+
+There is only one:
+
+```java
+HdfcBank.class
+```
+
+lock in JVM.
+
+***
+
+## Object-Level vs Class-Level for Your Scenario
+
+### Object-Level Lock
+
+```java
+synchronized void withdraw()
+synchronized void deposit()
+```
+
+```text
+obj1 lock
+obj2 lock
+```
+
+Result:
+
+```text
+ATMThread      ✅
+GooglePayThread ✅
+```
+
+Both run simultaneously.
+
+***
+
+### Class-Level Lock
+
+```java
+static synchronized void withdraw()
+static synchronized void deposit()
+```
+
+```text
+HdfcBank.class lock
+```
+
+Result:
+
+```text
+ATMThread      ✅
+GooglePayThread ❌ waiting
+```
+
+or
+
+```text
+GooglePayThread ✅
+ATMThread      ❌ waiting
+```
+
+Only one thread at a time can access any static synchronized method of `HdfcBank`. This is the classic demonstration of a **class-level lock**.

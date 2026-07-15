@@ -1,0 +1,453 @@
+# 1. AtomicBoolean Example
+
+`AtomicBoolean` is used when multiple threads need to safely update a boolean value.
+
+## Without AtomicBoolean
+
+```java
+volatile boolean started = false;
+```
+
+Problem:
+
+```java
+if(!started) {
+    started = true;
+    // start process
+}
+```
+
+Two threads may enter simultaneously.
+
+***
+
+## With AtomicBoolean
+
+```java
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class AtomicBooleanDemo {
+
+    private static AtomicBoolean started =
+            new AtomicBoolean(false);
+
+    public static void main(String[] args)
+            throws Exception {
+
+        Runnable task = () -> {
+
+            if(started.compareAndSet(false, true)) {
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " started the process");
+
+            } else {
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " process already started");
+            }
+        };
+
+        Thread t1 = new Thread(task, "T1");
+        Thread t2 = new Thread(task, "T2");
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+    }
+}
+```
+
+### Possible Output
+
+```text
+T1 started the process
+T2 process already started
+```
+
+or
+
+```text
+T2 started the process
+T1 process already started
+```
+
+Only one thread succeeds.
+
+***
+
+# AtomicBoolean Real-Time Scenario
+
+Suppose an application startup job must run only once.
+
+```java
+AtomicBoolean initialized =
+        new AtomicBoolean(false);
+
+if(initialized.compareAndSet(false, true)) {
+
+    loadConfiguration();
+}
+```
+
+Even if 100 threads execute this code, only one thread loads the configuration.
+
+***
+
+# 2. CAS (Compare And Swap) Explained
+
+CAS is the technology behind:
+
+```java
+AtomicInteger
+AtomicLong
+AtomicBoolean
+AtomicReference
+```
+
+CAS works using 3 values:
+
+```text
+Memory Value
+Expected Value
+New Value
+```
+
+Pseudo code:
+
+```text
+if(memoryValue == expectedValue)
+{
+    memoryValue = newValue;
+    return true;
+}
+else
+{
+    return false;
+}
+```
+
+***
+
+## Real World ATM Example
+
+Suppose account balance:
+
+```text
+1000
+```
+
+Thread-1 wants:
+
+```text
+1000 -> 900
+```
+
+Thread-2 wants:
+
+```text
+1000 -> 800
+```
+
+### Thread-1
+
+Reads:
+
+```text
+Expected = 1000
+```
+
+CAS Check:
+
+```text
+Current Balance = 1000
+Expected = 1000
+```
+
+Match ✅
+
+Update:
+
+```text
+Balance = 900
+```
+
+***
+
+### Thread-2
+
+Reads:
+
+```text
+Expected = 1000
+```
+
+CAS Check:
+
+```text
+Current Balance = 900
+Expected = 1000
+```
+
+Mismatch ❌
+
+Update fails.
+
+Thread-2 retries with:
+
+```text
+Expected = 900
+New Value = 800
+```
+
+Now it succeeds.
+
+***
+
+# CAS with AtomicInteger
+
+```java
+AtomicInteger count =
+        new AtomicInteger(0);
+
+count.incrementAndGet();
+```
+
+Internally simplified:
+
+```text
+Read Current Value
+
+Expected = 0
+
+Try Update to 1
+
+Success?
+   YES → Done
+   NO  → Retry
+```
+
+No locks are involved.
+
+***
+
+# CAS Visualization
+
+```text
+Current Value = 10
+
+Thread-1
+
+Expected : 10
+New Value: 11
+
+Success ✅
+
+--------------------
+
+Thread-2
+
+Expected : 10
+Current  : 11
+
+Fail ❌
+
+Retry
+```
+
+This retry mechanism makes Atomic classes thread-safe.
+
+***
+
+# 3. When to Prefer synchronized Over Atomic?
+
+Atomic classes are excellent for:
+
+```text
+Single Variable Operations
+```
+
+Examples:
+
+```java
+count.incrementAndGet();
+
+stock.decrementAndGet();
+
+flag.compareAndSet();
+```
+
+***
+
+## Prefer synchronized When Multiple Variables Must Be Updated Together
+
+### Wrong with Atomic
+
+```java
+AtomicInteger balance =
+        new AtomicInteger(10000);
+
+AtomicInteger transactions =
+        new AtomicInteger(0);
+```
+
+Withdraw:
+
+```java
+balance.addAndGet(-500);
+transactions.incrementAndGet();
+```
+
+Suppose application crashes between the two operations.
+
+State becomes inconsistent.
+
+***
+
+### Correct
+
+```java
+synchronized(this) {
+
+    balance -= 500;
+    transactions++;
+}
+```
+
+Both updates happen together.
+
+***
+
+## Bank Account Example
+
+```java
+class BankAccount {
+
+    private int balance = 10000;
+
+    public synchronized void withdraw(
+            int amount) {
+
+        if(balance >= amount) {
+
+            balance -= amount;
+        }
+    }
+}
+```
+
+Reason:
+
+```text
+Check Balance
+↓
+Validate
+↓
+Update Balance
+```
+
+These operations must be atomic as a group.
+
+***
+
+## Inventory Example
+
+```java
+synchronized(this) {
+
+    if(stock > 0) {
+
+        stock--;
+
+        generateOrder();
+    }
+}
+```
+
+AtomicInteger alone cannot protect the entire business workflow.
+
+***
+
+## Money Transfer Example
+
+```java
+synchronized(this) {
+
+    accountA.withdraw(1000);
+
+    accountB.deposit(1000);
+
+    generateStatement();
+}
+```
+
+Multiple operations need one transaction-like block.
+
+Use:
+
+```text
+synchronized
+```
+
+***
+
+# Atomic vs synchronized
+
+### Atomic
+
+Good For:
+
+```text
+Counter
+Request Count
+Ticket Number
+Active Users
+Flags
+```
+
+Example:
+
+```java
+count.incrementAndGet();
+```
+
+***
+
+### synchronized
+
+Good For:
+
+```text
+Bank Transactions
+Inventory Updates
+Order Processing
+Seat Booking
+Money Transfer
+```
+
+Example:
+
+```java
+synchronized(lock) {
+
+    // multiple related operations
+}
+```
+
+***
+
+# Interview Answer
+
+> `AtomicBoolean` is used for thread-safe boolean updates and commonly works with `compareAndSet()`,
+ which is based on CAS (Compare-And-Swap). CAS compares the current value with an expected value and updates it only
+ if they match; otherwise it retries. Atomic classes are ideal for single-variable operations such as counters, flags, 
+ and sequence numbers. However, when multiple variables or multiple steps must be updated as one unit—for example bank withdrawals,
+ inventory management, or money transfers—`synchronized` is preferred because it provides mutual exclusion and guarantees consistency 
+ across the entire block of code.
+ 
+ 
+ 

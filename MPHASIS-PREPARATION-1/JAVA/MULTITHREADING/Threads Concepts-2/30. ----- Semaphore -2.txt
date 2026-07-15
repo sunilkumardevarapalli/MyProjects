@@ -1,0 +1,441 @@
+# 1. Semaphore with `tryAcquire()`
+
+`tryAcquire()` attempts to get a permit immediately.
+
+* If permit available → returns `true`
+* If permit unavailable → returns `false`
+* Thread does not wait
+
+## Example
+
+```java
+import java.util.concurrent.Semaphore;
+
+class ATMTask implements Runnable {
+
+    private Semaphore semaphore;
+
+    public ATMTask(Semaphore semaphore) {
+        this.semaphore = semaphore;
+    }
+
+    @Override
+    public void run() {
+
+        if (semaphore.tryAcquire()) {
+
+            try {
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                                + " got permit");
+
+                Thread.sleep(5000);
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                                + " completed work");
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+
+                semaphore.release();
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                                + " released permit");
+            }
+
+        } else {
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                            + " could not get permit");
+        }
+    }
+}
+```
+
+### Main
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+
+        Semaphore semaphore =
+                new Semaphore(2);
+
+        for(int i=1;i<=5;i++) {
+
+            Thread t = new Thread(
+                    new ATMTask(semaphore));
+
+            t.setName("Customer-" + i);
+
+            t.start();
+        }
+    }
+}
+```
+
+### Possible Output
+
+```text
+Customer-1 got permit
+Customer-2 got permit
+
+Customer-3 could not get permit
+Customer-4 could not get permit
+Customer-5 could not get permit
+```
+
+***
+
+# 2. Fairness in Semaphore
+
+Normally:
+
+```java
+Semaphore semaphore =
+        new Semaphore(2);
+```
+
+Fairness:
+
+```text
+false
+```
+
+(default)
+
+This means:
+
+```text
+No guarantee of order
+```
+
+A newly arriving thread may get a permit before a thread that has been waiting longer.
+
+***
+
+## Non-Fair Semaphore
+
+```java
+Semaphore semaphore =
+        new Semaphore(1);
+```
+
+Waiting Threads:
+
+```text
+T1
+T2
+T3
+```
+
+When permit becomes available:
+
+```text
+T3 may get it first
+```
+
+Possible:
+
+```text
+T2 waits
+T1 waits
+T3 executes
+```
+
+***
+
+## Fair Semaphore
+
+```java
+Semaphore semaphore =
+        new Semaphore(1, true);
+```
+
+`true` means:
+
+```text
+FIFO Order
+```
+
+First Come First Serve.
+
+Waiting Queue:
+
+```text
+T1
+T2
+T3
+```
+
+Execution:
+
+```text
+T1
+T2
+T3
+```
+
+Guaranteed order.
+
+***
+
+## Example
+
+```java
+Semaphore semaphore =
+        new Semaphore(1, true);
+```
+
+Output:
+
+```text
+Thread-1 entered
+Thread-1 exited
+
+Thread-2 entered
+Thread-2 exited
+
+Thread-3 entered
+Thread-3 exited
+```
+
+***
+
+# Fair vs Non-Fair
+
+## Fair Semaphore
+
+```java
+new Semaphore(2, true);
+```
+
+Advantages:
+
+* No starvation
+* FIFO order
+
+Disadvantages:
+
+* Slightly slower
+
+***
+
+## Non-Fair Semaphore
+
+```java
+new Semaphore(2);
+```
+
+Advantages:
+
+* Better throughput
+* Faster
+
+Disadvantages:
+
+* Some threads may wait longer
+
+***
+
+# 3. Semaphore with Timeout
+
+Instead of waiting forever:
+
+```java
+acquire();
+```
+
+use:
+
+```java
+tryAcquire(timeout, unit);
+```
+
+The thread waits only for a specific duration.
+
+***
+
+## Example
+
+```java
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+class ATMTask implements Runnable {
+
+    private Semaphore semaphore;
+
+    public ATMTask(Semaphore semaphore) {
+        this.semaphore = semaphore;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                            + " trying for permit");
+
+            if(semaphore.tryAcquire(
+                    3,
+                    TimeUnit.SECONDS)) {
+
+                try {
+
+                    System.out.println(
+                            Thread.currentThread().getName()
+                                    + " acquired permit");
+
+                    Thread.sleep(5000);
+
+                } finally {
+
+                    semaphore.release();
+
+                    System.out.println(
+                            Thread.currentThread().getName()
+                                    + " released permit");
+                }
+
+            } else {
+
+                System.out.println(
+                        Thread.currentThread().getName()
+                                + " timeout occurred");
+            }
+
+        } catch (InterruptedException e) {
+
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+***
+
+## Main
+
+```java
+public class Test {
+
+    public static void main(String[] args) {
+
+        Semaphore semaphore =
+                new Semaphore(2);
+
+        for(int i=1;i<=5;i++) {
+
+            Thread t =
+                    new Thread(
+                            new ATMTask(semaphore));
+
+            t.setName("Customer-" + i);
+
+            t.start();
+        }
+    }
+}
+```
+
+***
+
+## Possible Output
+
+```text
+Customer-1 acquired permit
+Customer-2 acquired permit
+
+Customer-3 timeout occurred
+Customer-4 timeout occurred
+Customer-5 timeout occurred
+
+Customer-1 released permit
+Customer-2 released permit
+```
+
+Explanation:
+
+```text
+Only 2 permits available.
+
+Customer-1 and Customer-2 got permits.
+
+Others waited 3 seconds.
+
+Permit was not available within 3 seconds.
+
+tryAcquire() returned false.
+```
+
+***
+
+# Difference Between acquire() and tryAcquire()
+
+### acquire()
+
+```java
+semaphore.acquire();
+```
+
+Behavior:
+
+```text
+Wait forever until permit available.
+```
+
+***
+
+### tryAcquire()
+
+```java
+semaphore.tryAcquire();
+```
+
+Behavior:
+
+```text
+Try immediately.
+
+Success -> true
+Failure -> false
+```
+
+***
+
+### tryAcquire(timeout)
+
+```java
+semaphore.tryAcquire(
+        5,
+        TimeUnit.SECONDS);
+```
+
+Behavior:
+
+```text
+Wait up to 5 seconds.
+
+Success -> true
+Failure -> false
+```
+
+***
+
+# Interview Answer
+
+> `tryAcquire()` attempts to obtain a permit without waiting indefinitely and returns a boolean result. 
+`tryAcquire(timeout, unit)` allows a thread to wait for a specified duration before giving up. 
+Semaphore fairness can be enabled using `new Semaphore(permits, true)`, which guarantees FIFO ordering and prevents starvation. 
+Non-fair semaphores provide better throughput but do not guarantee the order in which waiting threads acquire permits.
+
+

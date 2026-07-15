@@ -1,0 +1,281 @@
+# FixedThreadPool vs SingleThreadExecutor
+
+This is a very common interview question.
+
+## SingleThreadExecutor
+
+Creates **only one worker thread**.
+
+```java
+ExecutorService ex =
+        Executors.newSingleThreadExecutor();
+```
+
+### Execution
+
+Suppose 5 tasks are submitted:
+
+```text
+Task1
+Task2
+Task3
+Task4
+Task5
+```
+
+Execution:
+
+```text
+Thread-1 -> Task1
+
+Thread-1 -> Task2
+
+Thread-1 -> Task3
+
+Thread-1 -> Task4
+
+Thread-1 -> Task5
+```
+
+Everything runs sequentially.
+
+Only one task executes at a time.
+
+***
+
+## FixedThreadPool(3)
+
+Creates **3 worker threads**.
+
+```java
+ExecutorService ex =
+        Executors.newFixedThreadPool(3);
+```
+
+### Execution
+
+Suppose 5 tasks are submitted.
+
+```text
+Thread-1 -> Task1
+
+Thread-2 -> Task2
+
+Thread-3 -> Task3
+```
+
+Remaining tasks:
+
+```text
+Task4
+Task5
+```
+
+wait in queue.
+
+When a thread becomes free:
+
+```text
+Thread-1 -> Task4
+
+Thread-2 -> Task5
+```
+
+Multiple tasks execute concurrently.
+
+***
+
+# Visual Comparison
+
+## SingleThreadExecutor
+
+```text
+Pool Size = 1
+
+Task1
+ ↓
+Task2
+ ↓
+Task3
+ ↓
+Task4
+ ↓
+Task5
+```
+
+Total execution is sequential.
+
+***
+
+## FixedThreadPool(3)
+
+```text
+Pool Size = 3
+
+Thread-1 → Task1
+Thread-2 → Task2
+Thread-3 → Task3
+
+Queue:
+Task4
+Task5
+```
+
+Parallel execution.
+
+***
+
+# Real-Time Example
+
+## Policy Email Trigger
+
+1000 customers.
+
+### SingleThreadExecutor
+
+```text
+Customer1 Email
+Customer2 Email
+Customer3 Email
+...
+Customer1000 Email
+```
+
+One after another.
+
+May take a long time.
+
+***
+
+### FixedThreadPool(10)
+
+```text
+10 emails processed simultaneously
+```
+
+Much faster.
+
+***
+
+# Order of Execution
+
+## SingleThreadExecutor
+
+Order is guaranteed.
+
+```text
+Task1
+Task2
+Task3
+Task4
+```
+
+Output follows submission order.
+
+***
+
+## FixedThreadPool
+
+Order is not guaranteed.
+
+Example:
+
+Submitted:
+
+```text
+Task1
+Task2
+Task3
+Task4
+```
+
+Output may be:
+
+```text
+Task2
+Task1
+Task4
+Task3
+```
+
+Depends on thread scheduling.
+
+***
+
+# Failure Scenario
+
+Suppose:
+
+```java
+newSingleThreadExecutor()
+```
+
+Worker thread dies because of failure.
+
+Executor automatically creates another worker thread and continues processing pending tasks.
+
+Same behavior happens in FixedThreadPool.
+
+***
+
+# Difference Summary
+
+| Feature            | SingleThreadExecutor         | FixedThreadPool               |
+| ------------------ | ---------------------------- | ----------------------------- |
+| Number of Threads  | 1                            | Fixed Number (N)              |
+| Parallel Execution | No                           | Yes                           |
+| Task Order         | Sequential                   | Not Guaranteed                |
+| Performance        | Slower                       | Faster                        |
+| Concurrency        | No                           | Yes                           |
+| Queue Usage        | Yes                          | Yes                           |
+| Real Use Case      | Logging, Audit, File Writing | Email, APIs, Batch Processing |
+
+***
+
+# When to Use SingleThreadExecutor?
+
+Use when order is important:
+
+* Audit Logs
+* File Writing
+* Transaction History
+* Sequential Processing
+* Queue Consumers
+
+Example:
+
+```text
+Debit ₹1000
+Credit ₹500
+Update Balance
+```
+
+Must happen in order.
+
+***
+
+# When to Use FixedThreadPool?
+
+Use when tasks are independent:
+
+* Sending Emails
+* SMS Notifications
+* API Calls
+* Report Generation
+* Customer Processing
+
+Example:
+
+```text
+Email Customer1
+Email Customer2
+Email Customer3
+```
+
+Order doesn't matter.
+
+***
+
+# Interview Answer
+
+> `SingleThreadExecutor` creates only one worker thread and executes all tasks sequentially in submission order. `FixedThreadPool` creates a fixed number of worker threads and executes multiple tasks concurrently. SingleThreadExecutor is preferred when task order must be preserved, while FixedThreadPool is preferred for better throughput and parallel processing of independent tasks.

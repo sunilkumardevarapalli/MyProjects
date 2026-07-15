@@ -1,0 +1,424 @@
+## 1. Handling Exceptions with `Future`
+
+When you use `submit(Callable)`, any exception thrown inside `call()` is **not immediately printed**.
+
+The ExecutorService catches it and stores it inside the `Future`.
+
+### Example
+
+```java
+import java.util.concurrent.Callable;
+
+public class EmailTask implements Callable<String> {
+
+    @Override
+    public String call() throws Exception {
+
+        System.out.println("Processing Email");
+
+        int result = 10 / 0;
+
+        return "Success";
+    }
+}
+```
+
+### Main
+
+```java
+import java.util.concurrent.*;
+
+public class Test {
+
+    public static void main(String[] args) {
+
+        ExecutorService ex =
+                Executors.newFixedThreadPool(2);
+
+        Future<String> future =
+                ex.submit(new EmailTask());
+
+        try {
+
+            String result = future.get();
+
+            System.out.println(result);
+
+        } catch (ExecutionException e) {
+
+            System.out.println(
+                    "Actual Exception : "
+                            + e.getCause());
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+
+        ex.shutdown();
+    }
+}
+```
+
+### Output
+
+```text
+Processing Email
+
+Actual Exception :
+java.lang.ArithmeticException: / by zero
+```
+
+***
+
+## Exception Flow
+
+```text
+Callable Task
+     ↓
+Exception Occurs
+     ↓
+ExecutorService Catches Exception
+     ↓
+Stores Exception in Future
+     ↓
+future.get()
+     ↓
+ExecutionException
+```
+
+### Important
+
+```java
+catch (ExecutionException e)
+```
+
+Get actual exception:
+
+```java
+e.getCause()
+```
+
+Output:
+
+```text
+java.lang.ArithmeticException
+```
+
+instead of:
+
+```text
+java.util.concurrent.ExecutionException
+```
+
+***
+
+## Real-Time Example
+
+### Customer Email Processing
+
+```java
+public class TriggerEmailPolicy
+        implements Callable<String> {
+
+    private Customer customer;
+
+    public TriggerEmailPolicy(Customer customer) {
+        this.customer = customer;
+    }
+
+    @Override
+    public String call() throws Exception {
+
+        if(customer.getEmail() == null) {
+
+            throw new RuntimeException(
+                    "Email Not Found");
+        }
+
+        return "Email Sent To "
+                + customer.getName();
+    }
+}
+```
+
+### Retrieving Results
+
+```java
+for(Future<String> future : futureList) {
+
+    try {
+
+        System.out.println(
+                future.get());
+
+    } catch (ExecutionException e) {
+
+        System.out.println(
+                "Failed : "
+                + e.getCause().getMessage());
+    }
+}
+```
+
+Possible Output
+
+```text
+Email Sent To Sunil
+
+Failed : Email Not Found
+
+Email Sent To Ravi
+```
+
+***
+
+# 2. How to Cancel a Future Task
+
+ExecutorService provides:
+
+```java
+future.cancel(true);
+```
+
+or
+
+```java
+future.cancel(false);
+```
+
+***
+
+## cancel(true)
+
+```java
+future.cancel(true);
+```
+
+* Cancels task
+* Sends interrupt signal
+* If task is sleeping/waiting, it may stop immediately
+
+***
+
+## Example
+
+### Callable
+
+```java
+import java.util.concurrent.Callable;
+
+public class LongRunningTask
+        implements Callable<String> {
+
+    @Override
+    public String call() throws Exception {
+
+        for(int i=1;i<=10;i++) {
+
+            System.out.println(
+                    "Processing " + i);
+
+            Thread.sleep(1000);
+        }
+
+        return "Completed";
+    }
+}
+```
+
+### Main
+
+```java
+import java.util.concurrent.*;
+
+public class Test {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        ExecutorService ex =
+                Executors.newSingleThreadExecutor();
+
+        Future<String> future =
+                ex.submit(new LongRunningTask());
+
+        Thread.sleep(3000);
+
+        boolean cancelled =
+                future.cancel(true);
+
+        System.out.println(
+                "Cancelled : "
+                        + cancelled);
+
+        ex.shutdown();
+    }
+}
+```
+
+### Output
+
+```text
+Processing 1
+Processing 2
+Processing 3
+
+Cancelled : true
+```
+
+Task stops.
+
+***
+
+# Checking Cancellation Status
+
+### isCancelled()
+
+```java
+future.isCancelled();
+```
+
+Example:
+
+```java
+System.out.println(
+        future.isCancelled());
+```
+
+Output
+
+```text
+true
+```
+
+***
+
+### isDone()
+
+```java
+future.isDone();
+```
+
+Returns:
+
+```text
+true
+```
+
+when:
+
+* Completed Successfully
+* Failed With Exception
+* Cancelled
+
+***
+
+## Complete Example
+
+```java
+Future<String> future =
+        ex.submit(task);
+
+future.cancel(true);
+
+System.out.println(
+        "Cancelled = "
+                + future.isCancelled());
+
+System.out.println(
+        "Finished = "
+                + future.isDone());
+```
+
+Possible Output
+
+```text
+Cancelled = true
+Finished = true
+```
+
+***
+
+## What Happens if We Call `future.get()` After Cancellation?
+
+```java
+future.get();
+```
+
+Throws:
+
+```text
+CancellationException
+```
+
+Example
+
+```java
+try {
+
+    future.get();
+
+} catch (CancellationException e) {
+
+    System.out.println(
+            "Task Cancelled");
+}
+```
+
+Output
+
+```text
+Task Cancelled
+```
+
+***
+
+# Interview Questions
+
+### Q1: What exception does `future.get()` throw if task fails?
+
+```text
+ExecutionException
+```
+
+Actual cause:
+
+```java
+e.getCause()
+```
+
+***
+
+### Q2: What exception does `future.get()` throw if task is cancelled?
+
+```text
+CancellationException
+```
+
+***
+
+### Q3: Difference between `cancel(true)` and `cancel(false)`?
+
+`cancel(true)`
+
+```text
+Attempts to interrupt running task.
+```
+
+`cancel(false)`
+
+```text
+Cancels only if task has not started yet.
+Does not interrupt running task.
+```
+
+***
+
+## Interview Answer
+
+> Exceptions thrown by a Callable task are captured by ExecutorService and stored inside the Future. When `future.get()` is called, Java throws an `ExecutionException`, and the actual exception can be obtained using `e.getCause()`. A Future can be cancelled using `future.cancel(true)` or `future.cancel(false)`. After cancellation, `future.isCancelled()` returns true, and any call to `future.get()` throws a `CancellationException`.
+
+
+----------------
+

@@ -1,0 +1,625 @@
+## Pattern Matching for `instanceof` (Java 17)
+
+Pattern Matching for `instanceof` was finalized in **Java 16** and is available in **Java 17**. It eliminates explicit casting after an `instanceof` check.
+
+---
+
+# 1. Traditional `instanceof` (Before Java 16)
+
+```java
+Object obj = "Hello Java";
+
+if (obj instanceof String) {
+
+    String str = (String) obj;
+
+    System.out.println(str.toUpperCase());
+}
+```
+
+Output
+
+```
+HELLO JAVA
+```
+
+---
+
+# 2. Pattern Matching `instanceof` (Java 17)
+
+```java
+Object obj = "Hello Java";
+
+if (obj instanceof String str) {
+
+    System.out.println(str.toUpperCase());
+}
+```
+
+Output
+
+```
+HELLO JAVA
+```
+
+No explicit cast required.
+
+---
+
+# 3. Integer Example
+
+```java
+Object obj = 100;
+
+if (obj instanceof Integer num) {
+
+    System.out.println(num + 10);
+}
+```
+
+Output
+
+```
+110
+```
+
+---
+
+# 4. Double Example
+
+```java
+Object obj = 99.5;
+
+if (obj instanceof Double d) {
+
+    System.out.println(d * 2);
+}
+```
+
+Output
+
+```
+199.0
+```
+
+---
+
+# 5. Employee Object
+
+```java
+class Employee {
+
+    private int id;
+    private String name;
+
+    Employee(int id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+```
+
+```java
+Object obj = new Employee(101, "John");
+
+if (obj instanceof Employee emp) {
+
+    System.out.println(emp.getName());
+}
+```
+
+Output
+
+```
+John
+```
+
+---
+
+# 6. Multiple `instanceof`
+
+```java
+Object obj = 10.5;
+
+if (obj instanceof String s) {
+
+    System.out.println("String");
+
+}
+else if (obj instanceof Integer i) {
+
+    System.out.println("Integer");
+
+}
+else if (obj instanceof Double d) {
+
+    System.out.println("Double : " + d);
+
+}
+else {
+
+    System.out.println("Unknown");
+}
+```
+
+Output
+
+```
+Double : 10.5
+```
+
+---
+
+# 7. Logical AND (`&&`)
+
+```java
+Object obj = "Java";
+
+if (obj instanceof String s && s.length() > 3) {
+
+    System.out.println(s);
+}
+```
+
+Output
+
+```
+Java
+```
+
+Pattern variable is available after `&&`.
+
+---
+
+# 8. Logical AND
+
+```java
+Object obj = "Programming";
+
+if (obj instanceof String s &&
+        s.startsWith("Pro")) {
+
+    System.out.println(s.toUpperCase());
+}
+```
+
+Output
+
+```
+PROGRAMMING
+```
+
+---
+
+# 9. Multiple Conditions
+
+```java
+Object obj = "Java";
+
+if (obj instanceof String s &&
+        s.length() > 2 &&
+        s.contains("av")) {
+
+    System.out.println(s);
+}
+```
+
+Output
+
+```
+Java
+```
+
+---
+
+# 10. Using `!`
+
+```java
+Object obj = "Java";
+
+if (!(obj instanceof String s)) {
+
+    System.out.println("Not String");
+
+} else {
+
+    System.out.println(s);
+}
+```
+
+Output
+
+```
+Java
+```
+
+---
+
+# 11. Return Method
+
+```java
+public static int length(Object obj) {
+
+    if (obj instanceof String s) {
+
+        return s.length();
+    }
+
+    return 0;
+}
+```
+
+Usage
+
+```java
+System.out.println(length("Java"));
+```
+
+Output
+
+```
+4
+```
+
+---
+
+# 12. Interface Example
+
+```java
+interface Animal {
+
+    void sound();
+}
+```
+
+```java
+class Dog implements Animal {
+
+    public void sound() {
+
+        System.out.println("Bark");
+    }
+}
+```
+
+```java
+Object obj = new Dog();
+
+if (obj instanceof Animal animal) {
+
+    animal.sound();
+}
+```
+
+Output
+
+```
+Bark
+```
+
+---
+
+# 13. Parent Class Example
+
+```java
+class Animal {
+
+}
+
+class Dog extends Animal {
+
+    void bark() {
+
+        System.out.println("Bark");
+    }
+}
+```
+
+```java
+Animal animal = new Dog();
+
+if (animal instanceof Dog dog) {
+
+    dog.bark();
+}
+```
+
+Output
+
+```
+Bark
+```
+
+---
+
+# 14. Record Example
+
+```java
+record Employee(int id, String name) {
+}
+```
+
+```java
+Object obj = new Employee(101, "John");
+
+if (obj instanceof Employee emp) {
+
+    System.out.println(emp.id());
+
+    System.out.println(emp.name());
+}
+```
+
+Output
+
+```
+101
+John
+```
+
+---
+
+# 15. Generic Object
+
+```java
+Object obj = List.of(10,20,30);
+
+if (obj instanceof List<?> list) {
+
+    System.out.println(list.size());
+}
+```
+
+Output
+
+```
+3
+```
+
+---
+
+# 16. Array Example
+
+```java
+Object obj = new int[]{1,2,3};
+
+if (obj instanceof int[] arr) {
+
+    System.out.println(arr.length);
+}
+```
+
+Output
+
+```
+3
+```
+
+---
+
+# 17. Null Example
+
+```java
+Object obj = null;
+
+if (obj instanceof String s) {
+
+    System.out.println(s);
+
+}
+else {
+
+    System.out.println("Null");
+}
+```
+
+Output
+
+```
+Null
+```
+
+`null instanceof` always evaluates to `false`.
+
+---
+
+# 18. Nested Objects
+
+```java
+class Address {
+
+    String city = "Hyderabad";
+}
+
+class Employee {
+
+    Address address = new Address();
+}
+```
+
+```java
+Object obj = new Employee();
+
+if (obj instanceof Employee emp) {
+
+    System.out.println(emp.address.city);
+}
+```
+
+Output
+
+```
+Hyderabad
+```
+
+---
+
+# 19. Method Parameter
+
+```java
+public static void print(Object obj) {
+
+    if (obj instanceof String s) {
+
+        System.out.println(s);
+
+    } else if (obj instanceof Integer i) {
+
+        System.out.println(i);
+
+    } else {
+
+        System.out.println("Unknown");
+    }
+}
+```
+
+Usage
+
+```java
+print("Java");
+
+print(100);
+```
+
+Output
+
+```
+Java
+100
+```
+
+---
+
+# 20. Pattern Variable Scope
+
+Correct
+
+```java
+Object obj = "Java";
+
+if (obj instanceof String s) {
+
+    System.out.println(s.length());
+}
+```
+
+❌ Wrong
+
+```java
+Object obj = "Java";
+
+if (obj instanceof String s) {
+
+}
+
+System.out.println(s);   // Compile Error
+```
+
+The pattern variable `s` is only in scope where the pattern is known to have matched.
+
+---
+
+# 21. Using `||` (Not Allowed)
+
+```java
+Object obj = "Java";
+
+if (obj instanceof String s || s.length() > 3) {
+
+}
+```
+
+❌ Compile Error
+
+Reason: the right side of `||` may be evaluated when the pattern did not match, so `s` would not be initialized.
+
+---
+
+# 22. Using `&&` (Allowed)
+
+```java
+Object obj = "Java";
+
+if (obj instanceof String s &&
+        s.length() > 2) {
+
+    System.out.println(s);
+}
+```
+
+Output
+
+```
+Java
+```
+
+---
+
+# 23. `instanceof` with `final`
+
+```java
+Object obj = "Java";
+
+if (obj instanceof final String s) {
+
+    System.out.println(s);
+}
+```
+
+Output
+
+```
+Java
+```
+
+---
+
+# 24. Pattern Variable Reuse
+
+```java
+Object obj1 = "Java";
+Object obj2 = 100;
+
+if (obj1 instanceof String s) {
+
+    System.out.println(s);
+}
+
+if (obj2 instanceof Integer s) {
+
+    System.out.println(s);
+}
+```
+
+This is valid because each `s` is declared in a different scope.
+
+---
+
+# Interview Summary
+
+| Feature                                    | Java 8  | Java 17 |   |   |
+| ------------------------------------------ | ------- | ------- | - | - |
+| Explicit cast required                     | ✅       | ❌       |   |   |
+| Pattern variable                           | ❌       | ✅       |   |   |
+| Works with classes                         | ✅       | ✅       |   |   |
+| Works with interfaces                      | ✅       | ✅       |   |   |
+| Works with records                         | N/A     | ✅       |   |   |
+| Works with arrays                          | ✅       | ✅       |   |   |
+| Supports `&&`                              | ❌       | ✅       |   |   |
+| Supports `                                 |         | `       | ❌ | ❌ |
+| Works with `null`                          | `false` | `false` |   |   |
+| Variable scope limited to successful match | N/A     | ✅       |   |   |
+
+### Common interview questions
+
+1. What problem does pattern matching for `instanceof` solve?
+2. Why is `&&` allowed but `||` is not with a pattern variable?
+3. Can you use pattern matching with interfaces? (**Yes**.)
+4. Can you use it with records? (**Yes**.)
+5. Does `instanceof` match `null`? (**No**, it always returns `false`.)
+6. What is the scope of the pattern variable? (Only where the compiler can prove the pattern matched.)

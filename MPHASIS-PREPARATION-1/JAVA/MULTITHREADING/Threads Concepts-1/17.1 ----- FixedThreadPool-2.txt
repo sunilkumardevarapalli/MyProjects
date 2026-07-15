@@ -1,0 +1,334 @@
+## Scenario: FixedThreadPool with 2 Threads
+
+Let's modify your example to use:
+
+```java
+ExecutorService ex = Executors.newFixedThreadPool(2);
+```
+
+and add delay to simulate a real email sending operation.
+
+***
+
+## TriggerEmailPolicy.java
+
+```java
+public class TriggerEmailPolicy implements Runnable {
+
+    private Customer customer;
+
+    public TriggerEmailPolicy(Customer customer) {
+        this.customer = customer;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " Started Email For "
+                    + customer.getCustomerName());
+
+            // Simulate email processing
+            Thread.sleep(5000);
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                    + " Email Sent To "
+                    + customer.getCustomerName());
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+***
+
+## Main.java
+
+```java
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class Main {
+
+    public static void main(String[] args) {
+
+        List<Customer> customers = Arrays.asList(
+
+                new Customer(101, "Sunil", "sunil@gmail.com"),
+                new Customer(102, "Ravi", "ravi@gmail.com"),
+                new Customer(103, "Kiran", "kiran@gmail.com"),
+                new Customer(104, "Mahesh", "mahesh@gmail.com"),
+                new Customer(105, "Suresh", "suresh@gmail.com")
+        );
+
+        ExecutorService ex =
+                Executors.newFixedThreadPool(2);
+
+        for(Customer customer : customers) {
+
+            TriggerEmailPolicy task =
+                    new TriggerEmailPolicy(customer);
+
+            ex.execute(task);
+        }
+
+        ex.shutdown();
+    }
+}
+```
+
+***
+
+# What Happens Internally?
+
+### Customer List
+
+```text
+Sunil
+Ravi
+Kiran
+Mahesh
+Suresh
+```
+
+### Thread Pool
+
+```text
+pool-1-thread-1
+pool-1-thread-2
+```
+
+### Task Queue
+
+Initially:
+
+```text
+Task-1 Sunil
+Task-2 Ravi
+Task-3 Kiran
+Task-4 Mahesh
+Task-5 Suresh
+```
+
+***
+
+## Step 1
+
+Pool takes first 2 tasks.
+
+```text
+Thread-1 -> Sunil
+Thread-2 -> Ravi
+```
+
+Remaining Tasks:
+
+```text
+Kiran
+Mahesh
+Suresh
+```
+
+stay in queue.
+
+***
+
+## Step 2
+
+After 5 seconds:
+
+```text
+Thread-1 completes Sunil
+```
+
+Thread-1 becomes free.
+
+Immediately:
+
+```text
+Thread-1 -> Kiran
+```
+
+Queue:
+
+```text
+Mahesh
+Suresh
+```
+
+***
+
+## Step 3
+
+After Ravi finishes:
+
+```text
+Thread-2 -> Mahesh
+```
+
+Queue:
+
+```text
+Suresh
+```
+
+***
+
+## Step 4
+
+After Kiran finishes:
+
+```text
+Thread-1 -> Suresh
+```
+
+Queue:
+
+```text
+Empty
+```
+
+***
+
+## Visual Representation
+
+```text
+Time 0 sec
+
+Thread-1 --> Sunil
+Thread-2 --> Ravi
+
+Queue:
+Kiran
+Mahesh
+Suresh
+```
+
+```text
+Time 5 sec
+
+Thread-1 --> Kiran
+Thread-2 --> Mahesh
+
+Queue:
+Suresh
+```
+
+```text
+Time 10 sec
+
+Thread-1 --> Suresh
+Thread-2 --> Free
+
+Queue:
+Empty
+```
+
+```text
+Time 15 sec
+
+All Tasks Finished
+```
+
+***
+
+## Possible Output
+
+```text
+pool-1-thread-1 Started Email For Sunil
+pool-1-thread-2 Started Email For Ravi
+
+pool-1-thread-1 Email Sent To Sunil
+pool-1-thread-2 Email Sent To Ravi
+
+pool-1-thread-1 Started Email For Kiran
+pool-1-thread-2 Started Email For Mahesh
+
+pool-1-thread-1 Email Sent To Kiran
+pool-1-thread-2 Email Sent To Mahesh
+
+pool-1-thread-1 Started Email For Suresh
+
+pool-1-thread-1 Email Sent To Suresh
+```
+
+***
+
+# Why Use FixedThreadPool(2)?
+
+Without Thread Pool:
+
+```text
+5 Customers
+↓
+5 Threads Created
+```
+
+Problems:
+
+* More memory
+* Context switching overhead
+* Thread creation cost
+
+***
+
+With FixedThreadPool(2):
+
+```text
+5 Tasks
+↓
+Only 2 Threads Created
+↓
+Threads Reused
+↓
+Better Performance
+```
+
+***
+
+## Important Interview Question
+
+### How many threads are created?
+
+```java
+Executors.newFixedThreadPool(2);
+```
+
+Answer:
+
+```text
+Only 2 worker threads
+```
+
+regardless of:
+
+```text
+5 Tasks
+50 Tasks
+500 Tasks
+```
+
+Extra tasks go into the queue and wait for an available thread.
+
+***
+
+## Interview Answer
+
+> `FixedThreadPool(2)` creates exactly two worker threads.
+ When five customer email tasks are submitted,
+ the first two tasks are executed immediately and the remaining tasks are placed in an internal queue. 
+ As soon as a worker thread finishes its current task, it picks the next task from the queue.
+ This process continues until all tasks are completed. The threads are reused, reducing thread creation overhead and 
+ improving application performance.
+
+
+
+------------

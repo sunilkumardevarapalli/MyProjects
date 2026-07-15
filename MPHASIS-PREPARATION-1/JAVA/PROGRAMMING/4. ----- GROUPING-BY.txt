@@ -1,0 +1,347 @@
+
+-------------------------------------------------------------------------------------------------
+
+	1) Max salary of Empoyee from each Department
+
+		2️) Active and inactive employees
+
+		3) Male and female count
+
+		4) Print employees in each department
+
+		5) Count employees in each department 
+
+		6) create map where the key is Emp "Age" and the value is list of employees 
+
+	7) sort list of Emp objects based on salary in descending order 
+
+	8) fetch all emps whose salary is less than 3rd highest salay
+	 
+	9 Average salary of grade "A"
+
+	10 Sum salary of grade "A"
+
+	1️1.Department names
+
+	1️2 Average salary by gender
+
+	13.Average & total salary (entire org)
+
+	14.Average salary per department
+
+	1️5 Highest paid employee
+
+	1️6 Employees joined after 2025
+
+	1️7 Youngest male in product department  ***
+
+	18 Employee with most experience   ****
+	 
+	19 Male & Female count in Sales & Marketing
+
+	2️0.Partition employees by age (<=25 and >25)
+
+	2️1 Oldest employee  ****
+
+---------------------------------------------------------------------------------------------- 
+ 
+1) Max salary of Empoyee from each Department
+ 
+	✔️ Using groupingBy + maxBy
+	
+		If DepartMent is String Property in Emp
+		
+			Map<String, ***Optional<Employee>> result = employees.stream()
+
+					.collect(Collectors.groupingBy(
+						Employee::getDepartment,  or emp -> emp.getDepartment().getDeptName(),
+					***	Collectors.maxBy(Comparator.comparing(Employee::getSalary ***))
+					));
+	
+	✔️ Using collectingAndThen
+	
+			 Map<String, Emp> result = list.stream()
+						.collect(Collectors.groupingBy(
+							emp -> emp.getDepartment().getDeptName(),
+							Collectors.collectingAndThen(
+								Collectors.maxBy(Comparator.comparing(Emp::getSalary)),
+								*** Optional::get
+							)
+						));
+	  map.forEach((dept, emp) ->
+        	        System.out.println(dept + " -> " + emp.getName() + " : " + emp.getSalary())
+        	    );
+----------------------------------------------------------------------------------------------------- 
+ 											
+find Max and Min Employee Salary  here without department means getting max or min from combine all departments
+	
+			Interview Summary
+	
+				  Method					Returns				Best Use
+				
+					mapToDouble().max()		value				Simple
+					
+					max(Comparator)			Employee			Real-time use
+					
+					Collectors.maxBy		Optional<Employee>	Functional style
+					
+					collectingAndThen		Employee			Clean + interview favorite
+					
+					summarizingDouble		All stats			Most efficient
+			
+		✅ 1. Max & Min Salary (Basic Approach)
+
+			double maxSalary = employees.stream().mapToDouble(Employee::getSalary).max().orElse(0);
+
+			double minSalary = employees.stream().mapToDouble(Employee::getSalary).min().orElse(0);
+
+			System.out.println("Max Salary: " + maxSalary);
+			System.out.println("Min Salary: " + minSalary);
+		
+		✅ 2. Using Comparator (Get Employee Object)
+			
+			Employee maxEmp = employees.stream().max(Comparator.comparing(Employee::getSalary)).orElse(null);
+
+			Employee minEmp = employees.stream().min(Comparator.comparing(Employee::getSalary)).orElse(null);
+
+			System.out.println("Max Salary Employee: " + maxEmp.getName());
+			System.out.println("Min Salary Employee: " + minEmp.getName());
+			
+		✅ 3. Using Collectors.maxBy() and minBy()
+			
+			Optional<Employee> maxEmp = employees.stream().collect(Collectors.maxBy(Comparator.comparing(Employee::getSalary)));
+
+			Optional<Employee> minEmp = employees.stream().collect(Collectors.minBy(Comparator.comparing(Employee::getSalary)));
+		
+		✅ 4. Using collectingAndThen() (Best for Interviews)
+		
+			Employee maxEmp = employees.stream().collect(Collectors.collectingAndThen(
+													Collectors.maxBy(Comparator.comparing(Employee::getSalary)),
+													Optional::get
+												));
+
+			Employee minEmp = employees.stream().collect(Collectors.collectingAndThen(
+													Collectors.minBy(Comparator.comparing(Employee::getSalary)),
+													Optional::get
+												));
+		✅ 5. Using DoubleSummaryStatistics (Best One-Line Solution)
+		
+			DoubleSummaryStatistics stats = employees.stream() .collect(Collectors.summarizingDouble(Employee::getSalary));
+
+			System.out.println("Max Salary: " + stats.getMax());
+			System.out.println("Min Salary: " + stats.getMin()); 
+	
+--------------------------------------------------------------------------------------------------- 
+
+2️ Active and inactive employees
+
+	(Assume active = salary > 0 or add boolean field)
+
+	Map<Boolean, List<Employee>> map = employees.stream().collect(Collectors.partitioningBy(Emp::isActive));
+														
+    Map<Boolean, List<Emp>> count1 = list.stream().collect(Collectors.groupingBy(Emp::isActive ));															
+	 
+	Map<Boolean, Long>      count =  list.stream().collect(Collectors.groupingBy(Employee::isActive,Collectors.counting())); 	
+
+------------------------------------------------------------------------------------------------------ 
+3 Male and female count
+
+		Map<String, Long> result = employees.stream().collect(Collectors.groupingBy(
+											Employee::getGender,
+											Collectors.counting()
+										));
+
+------------------------------------------------------------------------------------------------------- 
+
+4 Print employees in each department
+
+		employees.stream()
+							.collect(Collectors.groupingBy(Employee::getDepartment))
+							.forEach((dept, empList) -> {
+								System.out.println(dept);
+								empList.forEach(e -> System.out.println(e.getName()));
+							});
+							
+		Map<String, List<Emp>> empDept = employees.stream()
+													.collect(Collectors.groupingBy(
+														Employee::getDepartment 
+													));
+
+------------------------------------------------------------------------------------------------------ 
+5) Count employees in each department 
+						
+		Map<String, Long> empDept = employees.stream()
+													.collect(Collectors.groupingBy(
+														Employee::getDepartment,
+														Collectors.counting()
+													)); 
+
+----------------------------------------------------------------------------------------------------- 
+6) create map where the key is Emp "Age" and the value is list of employees 
+
+		Map<Integer, List<Employee>> map =
+										employees.stream()
+										.collect(Collectors.groupingBy(Employee::getAge));
+										
+--------------------------------------------------------------------------------------------------- 
+
+7) sort list of Emp objects based on salary in descending order
+
+	List<Employee> sorted = employees.stream()
+								.sorted(Comparator.comparing(Employee::getSalary).reversed())
+								.collect(Collectors.toList());
+								
+---------------------------------------------------------------------------------------------------- 
+8)***** fetch all emps whose salary is less than 3rd highest salay
+
+		List<Employee> result = employees.stream()
+			.sorted(Comparator.comparingDouble(Employee::getSalary).reversed())
+			.skip(2) // skip top 2 salaries
+			.findFirst()
+			.map(Employee::getSalary)
+			.map(thirdHighestSalary ->
+				employees.stream()
+					.filter(e -> e.getSalary() < thirdHighestSalary)
+					.collect(Collectors.toList())
+			)
+			.orElse(Collections.emptyList());
+
+		result.forEach(System.out::println);
+
+	or 
+
+			7️ Employees with salary < 3rd highest
+			
+			double thirdHighest = employees.stream()
+													.map(Employee::getSalary)
+													.distinct()
+													.sorted(Comparator.reverseOrder())
+													.skip(2)
+													.findFirst()
+													.get();
+
+			List<Employee> result = employees.stream()
+													.filter(e -> e.getSalary() < thirdHighest)
+													.collect(Collectors.toList());
+			3d highest  salary:
+			
+			
+			Emp e = list.stream()
+				.sorted(Comparator.comparing(Emp::getSalary).reversed())
+				.skip(2)
+				.findFirst()
+				.get();
+		
+------------------------------------------------------------------------------------------------------ 
+9 Average salary of grade "A"
+
+			double avg = employees.stream()
+								.filter(e -> e.getGrade().equals("A"))
+								.mapToDouble *** (Employee::getSalary  ****)
+								.average()
+								.orElse(0);
+											 											
+------------------------------------------------------------------------------------------------- 
+
+10 Sum salary of grade "A"
+
+		double sum = employees.stream()
+										.filter(e -> e.getGrade().equals("A"))
+										.mapToDouble(Employee::getSalary)***
+										.sum();
+-------------------------------------------------------------------------------------------------- 
+
+1️1.Department names
+		employees.stream()
+						.map(***Employee::getDepartment)
+						.distinct()  **
+						.forEach(System.out::println); 
+------------------------------------------------------------------------------------------------------- 
+1️2 Average salary by gender
+
+		Map<String, Double> map = employees.stream()
+				.collect(Collectors.groupingBy(
+					Employee::getGender,
+					Collectors.averagingDouble(Employee::getSalary);
+));
+-------------------------------------------------------------------------------------------------
+13.Average & total salary (entire org)
+
+		DoubleSummaryStatistics stats = employees.stream()
+					.collect(Collectors.summarizingDouble(Employee::getSalary));
+
+		System.out.println(stats.getAverage());
+		System.out.println(stats.getSum()); 
+		 
+--------------------------------------------------------------
+
+14.Average salary per department *** here 
+
+			Map<String, Double> map = employees.stream()
+									.collect(Collectors.groupingBy(
+										Employee::getDepartment,
+										Collectors.averagingDouble(Employee::getSalary)
+									));
+									
+									averagingDouble***
+----------------------------------------------------------------------------------------------------- 
+1️5 Highest paid employee
+		Employee emp = employees.stream()
+								.max(Comparator.comparing(Employee::getSalary))
+								.get();
+---------------------------------------------------------------------------------------------------- 
+1️6  Employees Names joined after 2025
+
+			employees.stream()
+			.filter(e -> e.getYearOfJoining() > 2025)
+			.map(Employee::getName) **
+			.forEach(System.out::println);
+------------------------------------------------------------------------------------------------------------------- 
+1️7 Youngest male in product department
+
+			Employee emp =
+					employees.stream()
+								.filter(e -> e.getGender().equals("Male"))  ***
+								.filter(e -> e.getDepartment().equals("Product"))
+								.min(Comparator.comparing(Employee::getAge))  //min() expects a Comparator  if we mention min(Emp::getAge)
+								.get();
+				 
+--------------------------------------------------------------------------------------------------------- 
+18 Employee with most experience
+
+			Employee emp = employees.stream()
+								.min(Comparator.comparing(Employee::getYearOfJoining  *** here joinng date not age))
+								.get();
+--------------------------------------------------------------------------------------------------- 
+19 Male & Female count in Sales & Marketing
+
+			Map<String, Long> map = employees.stream()
+					.filter(e -> e.getDepartment().equals("Sales")
+							  || e.getDepartment().equals("Marketing"))
+					.collect(Collectors.groupingBy(
+						Employee::getGender,
+						Collectors.counting()
+					));
+
+	
+		
+----------------------------------------------------------------------------------------------------- 
+2️0.Partition employees by age (<=25 and >25)
+
+		Map<Boolean, List<Employee>> map =
+		employees.stream()
+		.collect(Collectors.partitioningBy(e -> e.getAge() <= 25  ***));
+
+--------------------------------------------------------------------------------------------------- 
+2️1 Oldest employee
+
+		Employee emp =
+		employees.stream()
+		.max(Comparator.comparing(Employee::getAge))
+		.get();
+
+		System.out.println(emp.getAge());
+		System.out.println(emp.getDepartment());
+
+------------------------------------------------------------------------------------------------- 
+ 

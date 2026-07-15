@@ -1,0 +1,422 @@
+# 1. Example with Timed `await()`
+
+Normally:
+
+```java
+latch.await();
+```
+
+waits forever until count becomes `0`.
+
+With timed await:
+
+```java
+latch.await(5, TimeUnit.SECONDS);
+```
+
+Waits only 5 seconds.
+
+***
+
+## Example
+
+```java
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+class Worker implements Runnable {
+
+    private CountDownLatch latch;
+
+    public Worker(CountDownLatch latch) {
+        this.latch = latch;
+    }
+
+    @Override
+    public void run() {
+
+        try {
+
+            Thread.sleep(10000);
+
+            System.out.println(
+                    Thread.currentThread().getName()
+                            + " Finished");
+
+            latch.countDown();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### Main
+
+```java
+public class Test {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        CountDownLatch latch =
+                new CountDownLatch(3);
+
+        for(int i=1;i<=3;i++) {
+
+            new Thread(
+                    new Worker(latch),
+                    "Thread-" + i)
+                    .start();
+        }
+
+        boolean completed =
+                latch.await(5, TimeUnit.SECONDS);
+
+        System.out.println(
+                "Completed : "
+                        + completed);
+
+        System.out.println(
+                "Main Thread Continues");
+    }
+}
+```
+
+### Output
+
+```text
+Completed : false
+
+Main Thread Continues
+
+Thread-1 Finished
+Thread-2 Finished
+Thread-3 Finished
+```
+
+Why?
+
+```text
+Workers need 10 seconds
+
+await waits only 5 seconds
+
+Timeout occurs
+```
+
+***
+
+## Successful Timed Await
+
+If workers finish within 5 seconds:
+
+```java
+Thread.sleep(2000);
+```
+
+Output:
+
+```text
+Thread-1 Finished
+Thread-2 Finished
+Thread-3 Finished
+
+Completed : true
+
+Main Thread Continues
+```
+
+***
+
+# 2. What Happens if `countDown()` Is Called Too Many Times?
+
+Suppose:
+
+```java
+CountDownLatch latch =
+        new CountDownLatch(3);
+```
+
+Initial Count:
+
+```text
+3
+```
+
+Calls:
+
+```java
+latch.countDown(); // 2
+
+latch.countDown(); // 1
+
+latch.countDown(); // 0
+```
+
+Now count reached:
+
+```text
+0
+```
+
+Latch is opened.
+
+***
+
+### Extra Calls
+
+```java
+latch.countDown(); // ignored
+
+latch.countDown(); // ignored
+
+latch.countDown(); // ignored
+```
+
+Count never becomes negative.
+
+***
+
+## Example
+
+```java
+CountDownLatch latch =
+        new CountDownLatch(2);
+
+System.out.println(
+        latch.getCount());
+
+latch.countDown();
+
+System.out.println(
+        latch.getCount());
+
+latch.countDown();
+
+System.out.println(
+        latch.getCount());
+
+latch.countDown();
+
+System.out.println(
+        latch.getCount());
+```
+
+### Output
+
+```text
+2
+1
+0
+0
+```
+
+Important:
+
+```text
+CountDownLatch count
+cannot go below zero.
+```
+
+***
+
+# 3. Can CountDownLatch Be Reused?
+
+### No ❌
+
+This is one of the most common interview questions.
+
+`CountDownLatch` is a **one-time-use synchronization aid**.
+
+***
+
+## Example
+
+```java
+CountDownLatch latch =
+        new CountDownLatch(2);
+
+latch.countDown();
+
+latch.countDown();
+
+latch.await();
+```
+
+Count:
+
+```text
+0
+```
+
+Latch opens.
+
+***
+
+Now:
+
+```java
+latch.await();
+```
+
+returns immediately.
+
+Because:
+
+```text
+Count already 0
+```
+
+You cannot reset it back to:
+
+```text
+2
+```
+
+There is no method like:
+
+```java
+latch.reset();
+```
+
+***
+
+## Wrong Expectation
+
+```java
+latch.countDown();
+latch.countDown();
+
+latch.await();
+
+/* Reuse Again */
+latch.await();
+```
+
+Second await:
+
+```text
+Returns immediately
+```
+
+because latch is already open.
+
+***
+
+# If Reuse Is Required?
+
+Use:
+
+```java
+CyclicBarrier
+```
+
+instead.
+
+***
+
+## CountDownLatch
+
+```text
+Reusable ?
+      ↓
+No
+```
+
+Example:
+
+```text
+Application Startup
+Microservice Initialization
+Batch Processing
+```
+
+One-time event.
+
+***
+
+## CyclicBarrier
+
+```text
+Reusable ?
+      ↓
+Yes
+```
+
+Example:
+
+```text
+Round-1
+Round-2
+Round-3
+```
+
+Same barrier reused repeatedly.
+
+***
+
+# CountDownLatch vs CyclicBarrier
+
+### CountDownLatch
+
+```java
+CountDownLatch latch =
+        new CountDownLatch(3);
+```
+
+Behavior:
+
+```text
+Count 3
+Count 2
+Count 1
+Count 0
+
+Finished
+```
+
+Cannot reset.
+
+***
+
+### CyclicBarrier
+
+```java
+CyclicBarrier barrier =
+        new CyclicBarrier(3);
+```
+
+Behavior:
+
+```text
+Round 1 Complete
+
+Barrier resets automatically
+
+Round 2 Complete
+
+Barrier resets automatically
+
+Round 3 Complete
+```
+
+Reusable.
+
+***
+
+# Interview Answers
+
+### What happens if `countDown()` is called more times than the initial count?
+
+> Once the count reaches zero, additional `countDown()` calls are ignored. The count never becomes negative.
+
+### What does `await(timeout, TimeUnit)` return?
+
+> It returns `true` if the count reaches zero before the timeout, otherwise it returns `false`.
+
+### Can `CountDownLatch` be reused?
+
+> No. `CountDownLatch` is a one-time synchronization mechanism. Once the count reaches zero, it cannot be reset. 
+If reusable synchronization is required, use `CyclicBarrier` or `Phaser`.

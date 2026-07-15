@@ -1,0 +1,123 @@
+
+
+ when are equals() and hashCode() required?  
+
+	They are required when the Emp object itself becomes the key 
+	 
+	is stored in hash-based collections.
+	
+		1. Using distinct() --> list.stream().distinct() --> HashSet
+		
+		2. Using HashSet --> Set<Emp> set = new HashSet<>(list);
+		
+		3. Using groupingBy(Emp::...) --> Collectors.groupingBy(Function.identity(), Collectors.counting())
+		
+	What are hash-based collections?
+			
+		Examples:
+
+			HashSet
+			HashMap
+			Hashtable
+			LinkedHashSet
+			LinkedHashMap		
+	These collections internally use:
+
+		hashCode() → find bucket
+		equals()   → compare objects  --> equals()   -> compares memory address
+
+	@Override
+	public boolean equals(Object o) {
+
+		if(this == o)
+			return true;
+
+		if(!(o instanceof Emp))
+			return false;
+
+		Emp emp = (Emp) o;
+
+		return id == emp.id;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id);
+	}	
+	
+---------------------------------------------------------
+
+1. Using distinct()
+
+	list.stream().distinct()
+	
+	Internally uses:  HashSet
+	
+	So duplicates are detected using:
+
+		hashCode()
+		then equals()
+
+	Without overriding them:
+
+		new Emp(1,"A")
+		new Emp(1,"B")
+
+	will be treated as DIFFERENT objects.
+	
+2. Using HashSet
+
+	Set<Emp> set = new HashSet<>(list);   --> Needs both methods.
+	
+3. Using groupingBy(Emp::...)
+
+	Collectors.groupingBy(Function.identity(), Collectors.counting())
+	
+	Now key becomes whole Emp:  Map<Emp, Long>
+	
+	Now Java must know:
+
+		when 2 Emp objects are equal
+		how to generate same hash bucket
+
+	So equals() and hashCode() are required.
+	
+	Example  Without overriding:
+
+		Emp e1 = new Emp(101, "Sunil");
+		Emp e2 = new Emp(101, "Ravi");
+
+	System.out.println(e1.equals(e2));
+
+	Output: false
+
+	because default Object.equals() compares memory addresses.
+	
+	After overriding: return id == emp.id;  
+	
+	e1.equals(e2) --> true
+	
+Finally: HashCode find the bucket address, equals compare the value if same override the value.
+
+hashCode() decides the bucket; equals() decides equality within the bucket.
+	
+Summary
+
+| Scenario                          | equals/hashCode needed? | Why                   |
+| --------------------------------- | ----------------------- | --------------------- |
+| `groupingBy(Emp::getId)`          | No                      | Key is Integer        |
+| `distinct()` on Emp               | Yes                     | Uses HashSet          |
+| `HashSet<Emp>`                    | Yes                     | Hash-based collection |
+| `Map<Emp, ...>`                   | Yes                     | Emp is key            |
+| `groupingBy(Function.identity())` | Yes                     | Emp becomes map key   |
+
+
+Then equals/hashCode required:
+				
+	Set<Emp> set = new HashSet<>();
+		Emp firstRepeated =
+				list.stream() 
+					.filter(e -> !set.add(e)) 
+					.findFirst() 
+					.orElse(null);
+---------------------------------------------------

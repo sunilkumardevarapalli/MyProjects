@@ -1,0 +1,115 @@
+Yes. **That's the main advantage of `CyclicBarrier`.**
+
+Unlike `CountDownLatch`, a `CyclicBarrier` automatically resets after all participating threads reach the barrier,
+ so it can be used again for the next phase.
+
+## Example
+
+```java
+import java.util.concurrent.CyclicBarrier;
+
+public class CyclicBarrierDemo {
+
+    public static void main(String[] args) {
+
+        CyclicBarrier barrier = new CyclicBarrier(3);
+
+        Runnable task = () -> {
+
+            try {
+
+                // Phase 1
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " Phase 1");
+
+                barrier.await();
+
+                // Phase 2
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " Phase 2");
+
+                barrier.await();
+
+                // Phase 3
+                System.out.println(
+                        Thread.currentThread().getName()
+                        + " Phase 3");
+
+                barrier.await();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
+
+        new Thread(task, "T1").start();
+        new Thread(task, "T2").start();
+        new Thread(task, "T3").start();
+    }
+}
+```
+
+### Flow
+
+```text
+Phase 1
+T1 waits
+T2 waits
+T3 waits
+↓
+All continue
+
+Phase 2
+T1 waits
+T2 waits
+T3 waits
+↓
+All continue
+
+Phase 3
+T1 waits
+T2 waits
+T3 waits
+↓
+All continue
+```
+
+The **same barrier object** is reused multiple times.
+
+***
+
+## Can CountDownLatch do this?
+
+No.
+
+```java
+CountDownLatch latch =  new CountDownLatch(3);
+```
+
+After:
+
+```java
+count = 0
+```
+
+the latch is finished forever.
+
+```java
+latch.await(); // returns immediately
+```
+
+You must create a new latch:
+
+```java
+latch = new CountDownLatch(3);
+```
+
+***
+
+## Interview Answer
+
+> Yes, `CyclicBarrier` can be used multiple times. Once all registered threads reach the barrier, 
+it automatically resets and becomes ready for the next synchronization cycle. `CountDownLatch`
+ cannot be reused because once its count reaches zero, it stays open permanently.

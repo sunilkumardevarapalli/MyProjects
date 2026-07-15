@@ -1,0 +1,514 @@
+# execute() vs submit() – When Should You Prefer execute()?
+
+Both methods belong to `ExecutorService`, but they are used for different purposes.
+
+## Prefer `execute()` When
+
+* You don't need a result.
+* You don't need task status.
+* You don't need to track completion.
+* It's a simple fire-and-forget task.
+
+Examples:
+
+* Logging
+* Sending email
+* Sending notifications
+* Cache cleanup
+* Audit entries
+
+```java
+executor.execute(() -> {
+    log.info("User Logged In");
+});
+```
+
+### Benefits
+
+* Simpler
+* Slightly less overhead
+* Clear intent: "Just run this task"
+
+***
+
+## Prefer `submit()` When
+
+* You need a result.
+* You want to know whether task completed.
+* You want to cancel the task.
+* You need exception handling through `Future`.
+
+Examples:
+
+* Salary Calculation
+* Database Query
+* API Call
+* Report Generation
+* Payment Processing
+
+```java
+Future<Integer> future =
+        executor.submit(() -> 100);
+
+Integer result = future.get();
+```
+
+***
+
+# Internal Difference
+
+## execute()
+
+```java
+executor.execute(task);
+```
+
+Flow:
+
+```text
+Runnable
+    ↓
+Thread Pool
+    ↓
+Execution
+    ↓
+Finished
+```
+
+No tracking.
+
+***
+
+## submit()
+
+```java
+Future<?> future =
+        executor.submit(task);
+```
+
+Flow:
+
+```text
+Runnable/Callable
+      ↓
+Future Created
+      ↓
+Thread Pool
+      ↓
+Execution
+      ↓
+Store Result/Exception
+      ↓
+Retrieve by Future
+```
+
+***
+
+# Exception Handling Difference
+
+This is one of the most asked interview questions.
+
+***
+
+## execute() Exception Handling
+
+### Example
+
+```java
+ExecutorService executor =
+        Executors.newSingleThreadExecutor();
+
+executor.execute(() -> {
+
+    System.out.println("Started");
+
+    int x = 10 / 0;
+
+    System.out.println("Finished");
+});
+```
+
+### Output
+
+```text
+Started
+
+Exception in thread "pool-1-thread-1"
+java.lang.ArithmeticException: / by zero
+```
+
+Exception is immediately visible.
+
+***
+
+# submit() Exception Handling
+
+### Example
+
+```java
+ExecutorService executor =
+        Executors.newSingleThreadExecutor();
+
+Future<?> future = executor.submit(() -> {
+
+    System.out.println("Started");
+
+    int x = 10 / 0;
+
+    System.out.println("Finished");
+});
+```
+
+### Output
+
+```text
+Started
+```
+
+No exception appears immediately.
+
+Why?
+
+Because ExecutorService catches the exception and stores it inside the Future.
+
+***
+
+## When Exception Appears
+
+```java
+future.get();
+```
+
+Example:
+
+```java
+try {
+
+    future.get();
+
+} catch (Exception e) {
+
+    System.out.println(e);
+}
+```
+
+Output:
+
+```text
+java.util.concurrent.ExecutionException
+```
+
+Root Cause:
+
+```text
+ArithmeticException
+```
+
+***
+
+# What Happens Internally?
+
+Suppose:
+
+```java
+Future<Integer> future =
+        executor.submit(task);
+```
+
+Internally:
+
+```text
+Task Starts
+    ↓
+Exception Occurred
+    ↓
+Executor Catches Exception
+    ↓
+Stores Exception in Future
+    ↓
+future.get()
+    ↓
+ExecutionException
+```
+
+***
+
+# Exception Example with Callable
+
+```java
+Callable<Integer> task = () -> {
+
+    System.out.println("Calculating");
+
+    int x = 10 / 0;
+
+    return 100;
+};
+```
+
+Submitting:
+
+```java
+Future<Integer> future =
+        executor.submit(task);
+```
+
+Getting result:
+
+```java
+try {
+
+    Integer result = future.get();
+
+} catch (ExecutionException e) {
+
+    System.out.println(
+            "Actual Exception : "
+            + e.getCause());
+}
+```
+
+Output:
+
+```text
+Actual Exception :
+java.lang.ArithmeticException: / by zero
+```
+
+***
+
+# Complete submit(Callable) Example
+
+## Bank Interest Calculation
+
+### Callable Task
+
+```java
+import java.util.concurrent.Callable;
+
+class InterestCalculator
+        implements Callable<Double> {
+
+    @Override
+    public Double call() throws Exception {
+
+        System.out.println(
+                Thread.currentThread().getName()
+                        + " calculating interest");
+
+        Thread.sleep(3000);
+
+        return 7500.50;
+    }
+}
+```
+
+***
+
+### Main Class
+
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class Test {
+
+    public static void main(String[] args)
+            throws Exception {
+
+        ExecutorService executor =
+                Executors.newFixedThreadPool(2);
+
+        Callable<Double> task =
+                new InterestCalculator();
+
+        Future<Double> future =
+                executor.submit(task);
+
+        System.out.println(
+                "Main Thread Working...");
+
+        Double interest =
+                future.get();
+
+        System.out.println(
+                "Interest = "
+                        + interest);
+
+        executor.shutdown();
+    }
+}
+```
+
+### Output
+
+```text
+Main Thread Working...
+
+pool-1-thread-1 calculating interest
+
+Interest = 7500.5
+```
+
+***
+
+# Future Methods (Very Important)
+
+## get()
+
+Wait until task finishes.
+
+```java
+future.get();
+```
+
+***
+
+## isDone()
+
+Check completion.
+
+```java
+future.isDone();
+```
+
+Example:
+
+```java
+false
+```
+
+Task running.
+
+```java
+true
+```
+
+Task completed.
+
+***
+
+## cancel()
+
+Cancel task.
+
+```java
+future.cancel(true);
+```
+
+***
+
+## isCancelled()
+
+Check cancelled or not.
+
+```java
+future.isCancelled();
+```
+
+***
+
+# Real-Time Scenario
+
+Suppose an e-commerce application loads:
+
+* Customer Details
+* Orders
+* Payment Information
+
+All simultaneously.
+
+```java
+Future<Customer> customerFuture =
+        executor.submit(customerTask);
+
+Future<List<Order>> orderFuture =
+        executor.submit(orderTask);
+
+Future<Payment> paymentFuture =
+        executor.submit(paymentTask);
+```
+
+Later:
+
+```java
+Customer customer =
+        customerFuture.get();
+
+List<Order> orders =
+        orderFuture.get();
+
+Payment payment =
+        paymentFuture.get();
+```
+
+This is one of the most common real-world uses of `Callable` and `Future`.
+
+***
+
+# Interview Questions
+
+### Why can't Runnable return a value?
+
+Because its method signature is:
+
+```java
+void run();
+```
+
+Return type is `void`.
+
+***
+
+### Why does Callable return a value?
+
+Because its method signature is:
+
+```java
+V call() throws Exception;
+```
+
+Return type is generic `V`.
+
+***
+
+### Why use Future?
+
+Future acts as a placeholder for a result that will become available later.
+
+***
+
+### Which is better: execute() or submit()?
+
+Neither is better.
+
+Use:
+
+```text
+execute()
+```
+
+When:
+
+* No result required
+* No tracking required
+
+Use:
+
+```text
+submit()
+```
+
+When:
+
+* Need result
+* Need status
+* Need cancellation
+* Need exception handling
+
+***
+
+# Interview Answer (2 Minutes)
+
+> `execute()` is used for fire-and-forget tasks and accepts only `Runnable`. It does not return any result or task status. `submit()` accepts both `Runnable` and `Callable`, returns a `Future`, and allows task monitoring, cancellation, exception handling, and result retrieval. When a task throws an exception through `execute()`, the exception is immediately visible in the worker thread. With `submit()`, the exception is captured inside the `Future` and is thrown as an `ExecutionException` when `future.get()` is called. For tasks like logging or notifications, `execute()` is sufficient. For tasks like database queries, report generation, salary calculations, or API calls where a result is required, `submit(Callable)` is preferred.

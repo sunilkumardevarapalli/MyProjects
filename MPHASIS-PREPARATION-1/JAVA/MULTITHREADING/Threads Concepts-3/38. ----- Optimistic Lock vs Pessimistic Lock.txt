@@ -1,0 +1,363 @@
+# Optimistic Lock vs Pessimistic Lock
+
+### Pessimistic Lock
+
+		I don't trust others.
+		Lock the record first.
+		Then update.
+
+### Optimistic Lock
+
+		I trust others.
+		Allow everyone to read/update.
+		Before saving, check if someone already changed it.
+
+# Real-Life Example
+
+## Pessimistic Lock
+
+		Imagine an ATM.
+		Account Balance = 10000
+		Customer A starts withdrawal.
+
+		Database:
+
+			LOCK ACCOUNT
+			Customer B tries withdrawal.
+			WAIT
+			until Customer A finishes.
+
+## Optimistic Lock
+
+		Everybody can read the account.
+		Before update:Check Version Number
+		
+		If somebody already updated:
+			Throw Exception
+			Retry
+
+# Pessimistic Lock
+
+		## Working
+
+		Read Row
+		↓
+		Acquire Lock
+		↓
+		Update Row
+		↓
+		Commit
+		↓
+		Release Lock
+
+		Other transactions:
+		Blocked
+
+## SQL Example
+
+sql:SELECT *FROM ACCOUNT WHERE ID=101 FOR UPDATE;
+
+means:
+Lock row immediately
+
+## JPA Example
+
+
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+public Account findById(Long id);
+
+# Optimistic Lock
+
+		Uses:
+
+		Version Column
+
+		Example Table:
+
+		ACCOUNT
+
+		ID   BALANCE   VERSION
+		----------------------
+		101  10000        1
+
+## Transaction-1
+
+		Reads:
+			Balance = 10000
+			Version = 1
+
+## Transaction-2
+
+	Reads:
+		Balance = 10000
+		Version = 1
+
+	### Transaction-1 Updates
+
+	Balance = 9000
+	Version = 2
+
+	Database:
+
+	Updated Successfully
+
+	### Transaction-2 Tries Update
+
+	Version Check:
+
+	Current Version = 2
+	Expected Version = 1
+
+	Mismatch.
+
+	Result:
+
+	OptimisticLockException
+
+***
+
+# JPA Optimistic Lock Example
+
+## Entity
+
+
+	@Entity
+	public class Account {
+
+		@Id
+		private Long id;
+
+		private Double balance;
+
+		@Version
+		private Long version;
+	}
+
+
+The version field is automatically managed by Hibernate.
+
+***
+
+# Internal SQL
+
+	Hibernate generates something similar to:
+
+	sql
+	UPDATE ACCOUNT SET BALANCE = 9000,VERSION = VERSION + 1 WHERE ID = 101 AND VERSION = 1;
+
+	If:
+	Rows Updated = 1
+
+	Success.
+	If:
+
+	Rows Updated = 0
+
+	Version mismatch.
+
+	Throw:
+
+	OptimisticLockException
+
+
+***
+
+# Comparison
+
+| Feature                   | Optimistic Lock | Pessimistic Lock |
+| ------------------------- | --------------- | ---------------- |
+| Lock Acquired Immediately | No              | Yes              |
+| Performance               | Faster          | Slower           |
+| Blocking                  | No              | Yes              |
+| Deadlock Possibility      | No/Very Low     | Yes              |
+| Best For                  | More Reads      | More Writes      |
+| Uses Version Column       | Yes             | No               |
+
+***
+
+# 5 Real-Time Scenarios for Optimistic Lock
+
+## 1. Employee Profile Update
+
+		100 users viewing profile
+		1 user updates profile
+
+		Conflicts are rare.
+
+		Use:
+
+		Optimistic Lock
+
+## 2. E-Commerce Product Details
+
+		Many users viewing product
+		Occasional updates
+
+		Example:
+
+		Description
+		Image
+		Specifications
+
+		Use Optimistic Lock.
+
+		***
+
+## 3. Customer Information Portal
+
+		Customer edits address
+		Rare concurrent updates.
+		Use:
+		Version field
+
+## 4. Insurance Policy Details
+
+		Agents read policy frequently
+		Updates are rare
+
+		Optimistic works best.
+
+## 5. Content Management System
+
+		Article Editing
+		Two editors editing same article.
+		Version conflict detected.
+		"Record Modified By Another User"
+
+# 5 Real-Time Scenarios for Pessimistic Lock
+
+## 1. Bank Withdrawal
+
+		Balance = 1000
+		Two withdrawals:
+		User-A -> 800
+		User-B -> 500
+		Must not happen simultaneously.
+		Use:
+		PESSIMISTIC_WRITE
+
+## 2. Flight Seat Booking
+
+		Only:
+		1 Seat Left
+
+		Two customers try booking.
+		Need immediate lock.
+		Use:
+
+		Pessimistic Lock
+
+
+		***
+
+## 3. Movie Ticket Booking
+
+
+		Last Seat
+
+
+		Multiple users booking simultaneously.
+
+		Lock row immediately.
+
+		***
+
+## 4. Inventory Deduction
+
+		Stock = 1
+
+		Two orders arrive.
+
+		Only one should succeed.
+
+		Use:
+
+		Pessimistic Lock
+
+
+## 5. Financial Transactions
+
+		Transfer Money
+		Update Ledger
+		Update Balance
+
+		Consistency is critical.
+
+		Use:
+
+
+		Pessimistic Lock
+
+		# Optimistic Lock Failure Example
+
+
+		try {
+
+			accountRepository.save(account);
+
+		} catch (OptimisticLockException e) {
+
+			System.out.println(
+					"Record already modified");
+
+		}
+
+
+		Common strategy:
+
+
+		Catch exception
+		Reload record
+		Retry
+
+
+		***
+
+		# When NOT to Use Optimistic Lock
+
+		Avoid when:
+
+
+		High write contention
+
+
+		Examples:
+
+		* Seat Booking
+		* Trading Systems
+		* Payment Systems
+		* Inventory Updates
+
+		Too many retries.
+
+		***
+
+		# When NOT to Use Pessimistic Lock
+
+		Avoid when:
+
+
+		Heavy read traffic
+
+
+		Examples:
+
+		* Product Catalog
+		* Employee Portal
+		* CMS Articles
+
+		Because:
+
+		Lots of blocking
+		Poor performance
+
+
+# Interview Answer (1 Minute)
+
+> Optimistic locking assumes conflicts are rare. It does not lock records immediately; instead,
+ it uses a version column and checks whether the data changed before committing.
+ If another transaction modified the record, an `OptimisticLockException` is thrown. 
+ It is best for read-heavy systems such as profile management, product catalogs, and content management. 
+ Pessimistic locking assumes conflicts are likely. It locks the record as soon as it is read, preventing other transactions from
+ modifying it until the lock is released. It is best for write-heavy and critical operations such as banking transactions,
+ seat booking, inventory management, and payment processing.

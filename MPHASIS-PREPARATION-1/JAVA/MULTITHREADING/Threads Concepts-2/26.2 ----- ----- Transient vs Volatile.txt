@@ -1,0 +1,675 @@
+# Transient vs Volatile in Java
+
+This is a very common interview question because both are keywords, but they solve completely different problems.
+
+## One-Line Difference
+
+* **transient** → Used in **Serialization**
+* **volatile** → Used in **Multithreading**
+
+***
+
+# Transient
+
+`transient` prevents a variable from being serialized.
+
+```java
+class Employee implements Serializable {
+
+    int id;
+
+    transient String password;
+}
+```
+
+When the object is serialized:
+
+```text
+id          -> Saved
+password    -> Not Saved
+```
+
+After deserialization:
+
+```text
+password = null
+```
+
+### Purpose
+
+* Security
+* Skip unnecessary data
+* Reduce serialized object size
+
+### Real-Time Examples
+
+* Password
+* OTP
+* Session Token
+* CAPTCHA
+* Cache Data
+
+***
+
+# Volatile
+
+`volatile` ensures visibility of variable updates across threads.
+
+```java
+class SharedData {
+
+    volatile boolean flag = true;
+}
+```
+
+Thread-1:
+
+```java
+while(flag) {
+
+}
+```
+
+Thread-2:
+
+```java
+flag = false;
+```
+
+Without volatile:
+
+```text
+Thread-1 may never see updated value.
+```
+
+With volatile:
+
+```text
+Thread-1 immediately sees false.
+```
+
+### Purpose
+
+* Memory visibility
+* Thread communication
+
+### Real-Time Examples
+
+* Shutdown Flag
+* Feature Toggle
+* Server Status
+* Configuration Refresh
+
+***
+
+# Major Differences
+
+| Feature                 | transient          | volatile          |
+| ----------------------- | ------------------ | ----------------- |
+| Used In                 | Serialization      | Multithreading    |
+| Purpose                 | Skip serialization | Ensure visibility |
+| Package                 | java.io            | java.lang         |
+| Affects Object Stream   | Yes                | No                |
+| Affects Threads         | No                 | Yes               |
+| Improves Thread Safety  | No                 | Partial           |
+| Prevents Serialization  | Yes                | No                |
+| Prevents Race Condition | No                 | No                |
+
+***
+
+# Example of Transient
+
+```java
+class User implements Serializable {
+
+    String userName;
+
+    transient String password;
+}
+```
+
+Before Serialization:
+
+```text
+userName = Sunil
+password = Admin123
+```
+
+After Deserialization:
+
+```text
+userName = Sunil
+password = null
+```
+
+***
+
+# Example of Volatile
+
+```java
+class Test {
+
+    volatile boolean running = true;
+}
+```
+
+Thread-1:
+
+```java
+while(running) {
+
+}
+```
+
+Thread-2:
+
+```java
+running = false;
+```
+
+Output:
+
+```text
+Thread-1 stops immediately.
+```
+
+***
+
+# Can Both Be Used Together?
+
+Yes.
+
+```java
+private transient volatile String token;
+```
+
+Meaning:
+
+```text
+volatile  -> visible across threads
+
+transient -> not serialized
+```
+
+Though this combination is rare.
+
+***
+
+# Interview Trick Question
+
+### Does transient provide thread safety?
+
+No.
+
+```text
+transient is related only to serialization.
+```
+
+***
+
+### Does volatile prevent serialization?
+
+No.
+
+```text
+volatile is related only to memory visibility.
+```
+
+***
+
+### Does volatile prevent race conditions?
+
+No.
+
+Example:
+
+```java
+volatile int count;
+
+count++;
+```
+
+Still unsafe because:
+
+```text
+Read
+Modify
+Write
+```
+
+are separate operations.
+
+Use:
+
+```java
+AtomicInteger
+```
+
+or
+
+```java
+synchronized
+```
+
+instead.
+
+***
+
+# Easy Way to Remember
+
+```text
+transient
+     ↓
+Object/File/Network
+     ↓
+Serialization
+```
+
+```text
+volatile
+     ↓
+Thread-1 ↔ Thread-2
+     ↓
+Visibility
+```
+
+# Interview Answer (30 Seconds)
+
+> `transient` and `volatile` serve different purposes. `transient` is used during serialization to exclude a field
+ from being written to the object stream, typically for sensitive data such as passwords or OTPs. 
+ `volatile` is used in multithreading to ensure that updates made by one thread are immediately visible to other threads.
+ Transient deals with object persistence, whereas volatile deals with memory visibility between threads.
+
+
+----------------------
+
+# 1. Code Using Both `transient` and `volatile`
+
+Yes, a variable can be both `transient` and `volatile`.
+
+```java
+import java.io.Serializable;
+
+public class UserSession implements Serializable {
+
+    private String userName;
+
+    private transient volatile String sessionToken;
+
+    public UserSession(String userName,
+                       String sessionToken) {
+
+        this.userName = userName;
+        this.sessionToken = sessionToken;
+    }
+
+    public String getSessionToken() {
+        return sessionToken;
+    }
+
+    public void setSessionToken(String sessionToken) {
+        this.sessionToken = sessionToken;
+    }
+}
+```
+
+### Meaning
+
+```java
+transient volatile String sessionToken;
+```
+
+`volatile`
+
+* Visible to all threads immediately
+
+`transient`
+
+* Not serialized
+* Not stored in file/network stream
+
+### Real-Time Example
+
+```text
+Online Banking Application
+
+userName     -> Save
+sessionToken -> Don't Save
+```
+
+but
+
+```text
+sessionToken changes
+```
+
+must be visible immediately to all threads.
+
+***
+
+# Example with Two Threads
+
+```java
+class SharedToken {
+
+    transient volatile String token =
+            "TOKEN-1";
+}
+```
+
+Thread-1
+
+```java
+System.out.println(
+        sharedToken.token);
+```
+
+Output
+
+```text
+TOKEN-1
+```
+
+Thread-2
+
+```java
+sharedToken.token = "TOKEN-2";
+```
+
+Immediately visible because of:
+
+```java
+volatile
+```
+
+If object gets serialized:
+
+```java
+ObjectOutputStream.writeObject(obj);
+```
+
+then
+
+```java
+token
+```
+
+is ignored because of:
+
+```java
+transient
+```
+
+***
+
+# 2. When to Use `transient`?
+
+Use `transient` when data should NOT be persisted.
+
+### Examples
+
+#### Password
+
+```java
+transient String password;
+```
+
+#### OTP
+
+```java
+transient String otp;
+```
+
+#### Session Token
+
+```java
+transient String sessionId;
+```
+
+#### Captcha
+
+```java
+transient String captcha;
+```
+
+#### Temporary Cache
+
+```java
+transient List<String> cache;
+```
+
+### Interview Rule
+
+Use `transient` when:
+
+```text
+Object should not save this field
+during serialization.
+```
+
+***
+
+# When to Use `volatile`?
+
+Use `volatile` when multiple threads share a variable and visibility is required.
+
+### Examples
+
+#### Application Shutdown Flag
+
+```java
+volatile boolean shutdown;
+```
+
+Thread-1
+
+```java
+while(!shutdown) {
+}
+```
+
+Thread-2
+
+```java
+shutdown = true;
+```
+
+***
+
+#### Feature Toggle
+
+```java
+volatile boolean cacheEnabled;
+```
+
+***
+
+#### Server Status
+
+```java
+volatile boolean serverRunning;
+```
+
+***
+
+#### Configuration Refresh
+
+```java
+volatile String activeVersion;
+```
+
+### Interview Rule
+
+Use `volatile` when:
+
+```text
+One thread updates
+Many threads read
+```
+
+and
+
+```text
+No increment/decrement operations
+```
+
+***
+
+# When NOT to Use `volatile`
+
+Avoid:
+
+```java
+volatile int count;
+
+count++;
+```
+
+Avoid:
+
+```java
+volatile double balance;
+
+balance -= 100;
+```
+
+Avoid:
+
+```java
+volatile List<String> list;
+
+list.add("A");
+```
+
+Because volatile does NOT provide:
+
+```text
+Atomicity
+```
+
+Use:
+
+```java
+AtomicInteger
+```
+
+or
+
+```java
+synchronized
+```
+
+instead.
+
+***
+
+# Can `transient` Be Used With `static`?
+
+### Yes
+
+```java
+transient static int count;
+```
+
+Compiles successfully.
+
+### But It's Meaningless
+
+Reason:
+
+```text
+Static variables are never serialized.
+```
+
+Example
+
+```java
+class Employee
+        implements Serializable {
+
+    static int count = 100;
+
+    transient static int total = 200;
+}
+```
+
+Both:
+
+```text
+count
+total
+```
+
+are ignored during serialization.
+
+So:
+
+```java
+transient static int total;
+```
+
+is redundant.
+
+***
+
+# Serialization Example
+
+```java
+class Employee
+        implements Serializable {
+
+    int id = 101;
+
+    static String company = "TCS";
+
+    transient String password = "admin";
+}
+```
+
+Before Serialization
+
+```text
+id = 101
+company = TCS
+password = admin
+```
+
+After Deserialization
+
+```text
+id = 101
+company = current static value
+password = null
+```
+
+Explanation:
+
+```text
+id         -> Serialized
+company    -> Not Serialized (static)
+password   -> Not Serialized (transient)
+```
+
+***
+
+# Transient vs Volatile Summary
+
+| Feature                        | transient          | volatile                   |
+| ------------------------------ | ------------------ | -------------------------- |
+| Purpose                        | Skip Serialization | Thread Visibility          |
+| Used In                        | Serialization      | Multithreading             |
+| Works Across Threads           | No                 | Yes                        |
+| Prevents Serialization         | Yes                | No                         |
+| Prevents Race Condition        | No                 | No                         |
+| Affects Main Memory Visibility | No                 | Yes                        |
+| Common Examples                | Password, OTP      | Shutdown Flag, Status Flag |
+
+***
+
+# Interview Answer
+
+> `transient` is used to exclude fields from serialization, typically for sensitive or temporary data such as passwords, OTPs, and session tokens. `volatile` is used in multithreading to ensure that updates made by one thread are immediately visible to other threads. A variable can be both `transient` and `volatile`, meaning it is visible across threads but excluded from serialization. Although `transient` can be used with `static`, it is unnecessary because static variables are already not serialized.
+
+
+---------------------
+

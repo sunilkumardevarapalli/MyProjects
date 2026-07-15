@@ -1,0 +1,297 @@
+## Difference Between `execute()`, `submit(Runnable)` and `submit(Callable)`
+
+This is a very common Java interview question.
+
+### 1. execute(Runnable)
+
+Used to execute a `Runnable` task.
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(2);
+
+executor.execute(() -> {
+    System.out.println("Task Executed");
+});
+```
+
+### Features
+
+✅ Accepts only `Runnable`
+
+✅ No return value
+
+✅ No `Future` object
+
+❌ Cannot get task status/result
+
+***
+
+### Internal Flow
+
+```text
+Runnable Task
+      ↓
+execute()
+      ↓
+Thread Pool
+      ↓
+Execution
+      ↓
+End
+```
+
+***
+
+## 2. submit(Runnable)
+
+Used to submit a `Runnable` task.
+
+```java
+ExecutorService executor =
+        Executors.newFixedThreadPool(2);
+
+Future<?> future = executor.submit(() -> {
+    System.out.println("Task Executed");
+});
+```
+
+### Features
+
+✅ Accepts `Runnable`
+
+✅ Returns `Future`
+
+✅ Can check task completion
+
+❌ No business result returned
+
+***
+
+### Example
+
+```java
+Future<?> future =
+        executor.submit(() -> {
+            System.out.println("Sending Email");
+        });
+
+System.out.println(future.isDone());
+```
+
+Output:
+
+```text
+false
+```
+
+Later:
+
+```text
+true
+```
+
+***
+
+### What will `get()` return?
+
+```java
+Object result = future.get();
+
+System.out.println(result);
+```
+
+Output:
+
+```text
+null
+```
+
+Because `Runnable` doesn't return any value.
+
+***
+
+## 3. submit(Callable)
+
+Used when you need a result.
+
+```java
+Callable<Integer> task = () -> {
+    return 100;
+};
+
+Future<Integer> future =
+        executor.submit(task);
+```
+
+### Features
+
+✅ Accepts `Callable`
+
+✅ Returns `Future`
+
+✅ Returns actual result
+
+✅ Can throw checked exceptions
+
+***
+
+### Example
+
+```java
+Callable<Integer> task = () -> {
+
+    return 5000;
+};
+
+Future<Integer> future =
+        executor.submit(task);
+
+Integer result = future.get();
+
+System.out.println(result);
+```
+
+Output:
+
+```text
+5000
+```
+
+***
+
+# Comparison
+
+| Feature                   | execute(Runnable) | submit(Runnable) | submit(Callable) |
+| ------------------------- | ----------------- | ---------------- | ---------------- |
+| Accepts Runnable          | ✅                 | ✅                | ❌                |
+| Accepts Callable          | ❌                 | ❌                | ✅                |
+| Returns Future            | ❌                 | ✅                | ✅                |
+| Return Value              | ❌                 | null             | Actual value     |
+| Can get Status            | ❌                 | ✅                | ✅                |
+| Can get Result            | ❌                 | ❌                | ✅                |
+| Checked Exception Support | ❌                 | ❌                | ✅                |
+
+***
+
+# Interview Scenario
+
+### Send Email
+
+No result needed.
+
+```java
+executor.execute(emailTask);
+```
+
+or
+
+```java
+executor.submit(emailTask);
+```
+
+Both work.
+
+***
+
+### Generate Salary
+
+Need result.
+
+```java
+Future<Double> salary =
+        executor.submit(salaryTask);
+```
+
+Use:
+
+```java
+submit(Callable)
+```
+
+***
+
+### Database Query
+
+Need Customer object.
+
+```java
+Future<Customer> future =
+        executor.submit(customerTask);
+```
+
+Use:
+
+```java
+submit(Callable)
+```
+
+***
+
+## Important Interview Question
+
+### Why use `submit(Runnable)` if it also doesn't return a result?
+
+Because it returns a `Future`.
+
+```java
+Future<?> future =
+        executor.submit(task);
+```
+
+Now you can:
+
+```java
+future.isDone();
+future.cancel(true);
+future.get();
+```
+
+With `execute()`, none of these are possible.
+
+***
+
+## Exception Handling Difference
+
+### execute()
+
+```java
+executor.execute(() -> {
+    throw new RuntimeException("Error");
+});
+```
+
+The exception is immediately visible in the thread.
+
+***
+
+### submit()
+
+```java
+Future<?> future =
+        executor.submit(() -> {
+            throw new RuntimeException("Error");
+});
+```
+
+The exception is captured inside the `Future`.
+
+You see it when:
+
+```java
+future.get();
+```
+
+throws:
+
+```java
+ExecutionException
+```
+
+This is another important difference.
+
+***
+
+## Interview Answer (30 seconds)
+
+> `execute()` accepts only Runnable tasks and does not return any value or Future object. `submit(Runnable)` accepts a Runnable and returns a Future that can be used to track task completion, although the result is always null. `submit(Callable)` accepts a Callable task, returns a Future, and allows the caller to obtain a result and handle checked exceptions. When a result or task monitoring is needed, `submit()` is preferred; otherwise, `execute()` is sufficient.

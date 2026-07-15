@@ -1,0 +1,127 @@
+
+
+
+CountDownLatch  waiting for all the threads to complete.You cannot reuse it.
+
+CyclicBarrier: waiting for all the threads to start.
+
+CyclicBarrier barrier = new CyclicBarrier(3); // Ready and Reach here to start
+
+		Race Competition
+
+		Runner1 Ready
+		Runner2 Ready
+		Runner3 Ready
+
+		All Ready
+		↓
+		Start Race
+		
+To match your **"All Threads Arrived"** output, use the **barrier action** constructor of `CyclicBarrier`.
+
+		## Complete Program
+
+		```java
+		import java.util.concurrent.CyclicBarrier;
+
+		public class BarrierActionDemo {
+
+			public static void main(String[] args) {
+
+				CyclicBarrier barrier = new CyclicBarrier(
+										3,
+										() -> System.out.println(
+												"\nAll Threads Arrived\n"));
+
+				Runnable task = () -> {
+
+					try {
+
+						System.out.println( Thread.currentThread().getName()+ " waiting");
+
+						barrier.await();
+
+						System.out.println( Thread.currentThread().getName() + " continue");
+
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				};
+
+				new Thread(task, "T1").start();
+				new Thread(task, "T2").start();
+				new Thread(task, "T3").start();
+			}
+		}
+		```
+
+## Sample Output
+
+		```text
+		T1 waiting
+		T2 waiting
+		T3 waiting
+
+		All Threads Arrived
+
+		T1 continue
+		T2 continue
+		T3 continue
+		```
+
+## How It Works
+
+	```java
+	CyclicBarrier barrier =
+			new CyclicBarrier(
+					3,
+					() -> System.out.println(
+							"All Threads Arrived"));
+		```
+
+		* `3` → Number of threads that must reach the barrier.
+		* The lambda expression is the **barrier action**.
+		* When the **third thread** reaches `barrier.await()`, the barrier action executes.
+		* After that, all waiting threads are released and continue execution.
+
+This is similar to a race checkpoint where all participants must arrive before everyone can move forward together.
+
+
+# Key Differences
+
+| Feature         | CountDownLatch                         | CyclicBarrier                          |
+| --------------- | -------------------------------------- | -------------------------------------- |
+| Purpose         | Wait for tasks to finish               | Wait for threads to reach common point |
+| Who waits?      | Usually main thread                    | All participating threads              |
+| Method          | `await()` + `countDown()`              | `await()`                              |
+| Reusable        | No                                     | Yes                                    |
+| Count Direction | Decreases to 0                         | Fixed parties                          |
+| Reset           | Not possible                           | Automatic                              |
+| Barrier Action  | No                                     | Yes                                    |
+| Use Case        | Application startup, worker completion | Multi-phase processing, simulations    |
+
+
+### CountDownLatch
+
+	Workers finish
+	↓
+	Main thread continues
+
+	"Countdown to Zero"
+
+### CyclicBarrier
+
+	Everyone meets
+	↓
+	Everyone continues together
+
+	"Meeting Point"
+
+
+### When would you choose CountDownLatch over CyclicBarrier?
+
+**Answer:**
+
+> Use `CountDownLatch` when one thread needs to wait for other threads to finish their work.
+ Use `CyclicBarrier` when multiple threads must wait for each other at a common synchronization point and then continue together.
+
