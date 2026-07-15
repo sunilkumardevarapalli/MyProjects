@@ -1,0 +1,120 @@
+
+
+What is Config Server?
+
+	A Config Server is a centralized configuration management service that stores and provides 
+	configuration (properties/yaml files) for all microservices from a single place.
+
+	Instead of every microservice maintaining its own application.properties, 
+	all configurations are stored in a central repository (mostly Git).
+	
+Without Config Server:
+
+		Customer Service
+		----------------
+			application.properties
+
+			server.port=8081
+			db.url=...
+
+		--------------------------
+
+		Order Service
+		--------------------------
+			application.properties
+
+			server.port=8082
+			db.url=...
+
+		--------------------------
+
+		Payment Service
+		--------------------------
+			application.properties
+
+			server.port=8083
+			db.url=...
+				
+	Problems
+
+		Duplicate configurations
+		Difficult to maintain
+		Need to redeploy every service after configuration changes
+		Different environments become hard to manage
+
+With Config Server:
+
+					   Git Repository
+					--------------------
+					customer-dev.yml
+					customer-prod.yml
+					order-dev.yml
+					payment-prod.yml
+					common.yml
+					--------------------
+							 ▲
+							 │
+					 Spring Cloud Config Server
+							 ▲
+			------------------------------------------
+			│            │             │
+	 Customer MS     Order MS     Payment MS
+
+	Every microservice fetches its configuration from the Config Server during startup.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		
+		
+		
+		
+		

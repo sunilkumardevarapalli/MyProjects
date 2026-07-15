@@ -1,0 +1,268 @@
+
+
+Eureka Server does NOT register with the API Gateway.
+
+The API Gateway registers itself with the Eureka Server.
+
+Architecture
+
+                  Eureka Server
+                 (Service Registry)
+                        ^
+                        |
+       Registers        |        Registers
+                        |
+    API Gateway     Order Service    Payment Service
+         |                 |                |
+         +-----------------+----------------+
+                           |
+                         Clients
+						 
+						 
+	Eureka Server is the registry.
+	API Gateway is a Eureka client.
+	Order Service is a Eureka client.
+	Payment Service is a Eureka client.
+	
+Step 1: Start Eureka Server
+
+		server:
+		  port: 8761
+
+		spring:
+		  application:
+			name: eureka-server
+
+		eureka:
+		  client:
+			register-with-eureka: false
+			fetch-registry: false	
+			
+	Notice:
+
+		register-with-eureka: false
+		fetch-registry: false
+
+	Because Eureka Server is the registry itself. It doesn't register anywhere.			
+	
+Step 2: API Gateway Starts	
+
+	API Gateway configuration:	
+					
+			server:
+			  port: 8080
+
+			spring:
+			  application:
+				name: api-gateway
+
+			  cloud:
+				gateway:
+				  routes:
+
+					- id: order-service
+					  uri: lb://order-service
+					  predicates:
+						- Path=/order/**
+
+					- id: payment-service
+					  uri: lb://payment-service
+					  predicates:
+						- Path=/payment/**
+
+			eureka:
+			  client:
+				service-url:
+				  defaultZone: http://localhost:8761/eureka
+
+			management:
+			  endpoints:
+				web:
+				  exposure:
+					include: "*"
+					
+	Note: lb://  means Gateway asks Eureka where is payment-service
+	
+	                Client
+                      |
+      GET /payment/100
+                      |
+                      v
+             API Gateway (8080)
+                      |
+     Path=/payment/** matched
+                      |
+                      v
+      lb://payment-service
+                      |
+                      v
+          Eureka Server (8761)
+                      |
+     payment-service -> localhost:8082
+                      |
+                      v
+          Payment Service (8082)
+                      |
+                      v
+             Response to Client
+			  
+	When the Gateway starts, it sends a registration request to Eureka. 
+		  
+	POST /eureka/apps/API-GATEWAY
+
+	with information like:
+
+		Service Name : api-gateway
+		Host         : localhost
+		Port         : 8080
+		Status       : UP
+
+	Eureka stores:
+
+		api-gateway
+		↓
+		localhost:8080	  
+		  
+Step 3: Payment Service Starts
+
+	It also registers.
+
+		spring:
+		  application:
+			name: payment-service
+
+		eureka:
+		  client:
+			service-url:
+			  defaultZone: http://localhost:8761/eureka
+
+	Registers as:
+
+		payment-service
+		↓
+		localhost:8082		  
+
+Step 4: Order Service Starts
+
+	Registers as:
+
+		order-service
+		↓
+		localhost:8081		  
+		  
+Eureka Dashboard
+
+		If you open:
+
+		http://localhost:8761
+
+		You'll see something like:
+
+		Instances currently registered with Eureka
+		---------------------------------------
+		
+		API-GATEWAY
+			localhost:api-gateway:8080
+		---------------------------------------
+		
+		ORDER-SERVICE
+			localhost:order-service:8081
+		---------------------------------------
+		
+		PAYMENT-SERVICE
+			localhost:payment-service:8082
+
+How Gateway Uses Eureka
+
+Suppose the client calls:
+
+GET http://localhost:8080/payment/100
+
+Gateway route:
+
+	spring:
+	  cloud:
+		gateway:
+		  routes:
+			- id: payment-service
+			  uri: lb://payment-service
+			  predicates:
+				- Path=/payment/**
+
+	The lb:// prefix tells the Gateway:
+
+	"Ask Eureka for the available instances of payment-service."
+
+	If Eureka returns:
+	
+	payment-service
+
+	↓
+
+	localhost:8082
+
+	localhost:8083
+
+	The Gateway selects one instance (using Spring Cloud LoadBalancer) and forwards the request.
+
+Heartbeats (Lease Renewal)
+
+Heartbeats (Lease Renewal)
+
+After registration, every service sends a heartbeat periodically (default is every 30 seconds).
+
+API Gateway
+
+↓
+
+Heartbeat
+
+↓
+
+Eureka
+
+If Eureka doesn't receive heartbeats for the lease expiration period (default is 90 seconds), 
+it marks the instance as unavailable and eventually removes it from the registry.
+
+Interview Answer
+
+Eureka Server never registers with the API Gateway. Instead, the API Gateway registers itself with Eureka,
+ just like any other microservice. During startup, the Gateway sends its service name, host, and port to Eureka.
+ Eureka stores this information in its registry. When a client request arrives, the Gateway uses lb://service-name to query Eureka,
+ discovers the available service instances, selects one through Spring Cloud LoadBalancer, and forwards the request.
+ This allows both the Gateway and other microservices to discover services dynamically without hardcoding URLs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
