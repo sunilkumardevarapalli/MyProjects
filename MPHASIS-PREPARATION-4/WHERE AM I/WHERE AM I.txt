@@ -1,0 +1,486 @@
+
+
+Completed Tasks:
+
+	Interview Questions:
+
+		) Java 1.8 programming --> Repeted , Non Repeted, Sorting, Removeing, grouping, Aggregation
+		
+		) Sql: 1 to 10 questions
+		
+		) Java 1.8 Fetures
+		
+			) PermGen
+			) HashMap bucket changes when >= 8 & capasity >=64
+			) Completable Feature
+			) Diff Stream vs parallel stream
+			) map vs flatMap
+			) Functional Interfase & Consumer and supplaier, predicate
+
+		) Java 17 Features:
+		
+		) Threading: 
+		
+		) Java Collections:
+		
+			Data Structors of ArrayList and HashSet
+		
+		) Synario based Quesitons:
+		
+	----------------------------------------
+	
+		) Improve performance in Spring boot
+		
+		) Improve performance in MS
+		
+		) Improve performance in Rest API
+		
+		) Improve performance in React
+		
+		) Improve performance in Data Base
+	
+	----------------------------------------
+	
+		) Spring Data JPA
+		
+		) Hibernate
+		
+		) Spring Boot:
+		
+		) Microservices:
+		
+		) Spring AI:
+		
+		) Synario based Quesitons
+		
+	----------------------------------------
+	
+		) Git Hub CoPilet
+	
+		) Docker
+		
+		) Kubernates
+		
+		) AWS
+		
+		) React JS
+		
+		) Angulalr
+		
+		) Git Hub 
+		
+		) Jenkins
+		
+		) Git Commands
+		
+	---------------------------------------
+		
+		
+		
+
+
+IQ: Welsfargo
+------------------------------------------------------
+
+	Transations
+
+	Circular dependency
+
+	n+1 problem
+
+	sb Annotations
+
+	dirty read
+
+	sb scopes
+	
+	security
+	
+	HM and HashTable
+	
+	perfromance improvement
+	
+	Java 17 and 21
+	
+-------------------one more interview---------------------------------------------------------
+
+	Bean life cyccle
+
+	Hibernate life cycle
+
+	Java script event life cycle
+
+	put and patch
+
+	spring boot uses
+
+	constructor and setter
+
+	java script asyncronus operation
+
+	Why java is independent
+
+------------------------------------------------------------------------
+
+wels fargo
+
+	optimistic and pesimistic loack
+
+	first non repeted
+
+	3d hiest amount
+
+	ms design patteren open , half open ,closed, circuit breker DP
+
+	jwt
+
+	instance and class level lock
+
+	java 1.8 meta data changes
+
+	predicate and supplyer
+
+	memory leack
+	
+	batch processing
+	
+		In Microservices, when one API needs data from multiple services concurrently,
+		you can handle it in several ways depending on the requirements.
+		
+			1. Using CompletableFuture (Java 8+)
+			2. Using WebClient + Reactor (Recommended)
+			3. API Gateway Aggregation Pattern
+			4. Feign Client + Async
+			5. Event-Driven Architecture (Kafka)
+		
+	saga design patteren
+	
+	Object Class Methods
+	
+	AI tools, Git hub copilot
+	
+----------------------------------------------------------
+
+1) Complete Angular --> 11 to 3 PM
+
+	1.1 Complete 20 questions daily 2 questions
+	
+		1. done notes
+	
+2) Revisining --> 3 PM to 11 PM
+
+----------------------------------------------------------
+
+	
+Employee id: 2151741
+
+Daie olloifing: june 02, 2010
+Date of Leaving: December 30, 2011
+	
+-------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Kubernates:
+
+	API Server:
+		
+		The API Server performs:
+
+			Authentication
+			Authorization
+			Admission Controllers
+			YAML validation
+			API version validation
+			Schema validation
+
+		It also adds metadata like:
+
+			uid
+			creationTimestamp
+			resourceVersion
+			namespace (default if not given)
+						
+			metadata:
+			  name: nginx-pod
+			  namespace: default
+			  
+		API Server stores Pod object into ETCD. Pod is NOT scheduled yet. Status is Pending
+		
+		spec:
+		  nodeName: null
+---------------------------------------------------------------------------------------------------------------
+		  
+	Scheduler Watches API Server:  Scheduler never directly reads etcd.
+	
+		For Pods:  spec.nodeName == empty   Unscheduled Pods
+		
+		Scheduler asks API Server for:
+
+			Available Nodes
+			CPU/Memory usage
+			Taints/Tolerations
+			Node Affinity
+			Pod Affinity/Anti-affinity
+			Resource requests/limits
+			Topology spread constraints
+			Policies
+			
+		Scheduler performs two major phases:
+		
+			A. Filtering Phase (Predicates)
+			
+			B. Scoring Phase (Priorities)
+			
+		A. Filtering Phase (Predicates)
+			
+			Removes unsuitable nodes.
+
+				Example checks:
+
+				Enough CPU?
+				Enough Memory?
+				Taints matched?
+				NodeSelector matched?
+				Port conflicts?
+				PVC available?
+				Affinity rules satisfied?
+			
+			Suppose cluster has:
+
+				Worker-1
+				Worker-2
+				Worker-3
+
+				After filtering:
+
+				Worker-1 ❌
+				Worker-2 ✅
+				Worker-3 ✅
+				
+		B. Scoring Phase (Priorities)
+
+			Scheduler scores remaining nodes.
+
+			Example scoring factors:
+
+				Least resource usage
+				Balanced resource allocation
+				Image locality
+				Affinity preference
+				Topology balancing
+
+			Example:
+
+				Worker-2 = 75
+				Worker-3 = 92
+				
+			Best node selected:
+			
+				Worker-3
+							
+	Scheduler Sends Binding to API Server:
+
+		Scheduler does NOT directly write into node.
+		
+		Instead it sends:
+		
+			Binding Request → API Server
+					
+			spec:
+			  nodeName: worker-3
+			
+	API Server Updates ETCD
+	
+		API Server updates Pod object in etcd.
+		
+		Now:
+		
+			spec:
+              nodeName: worker-3
+			  
+			  Pod becomes: Scheduled
+			  
+----------------------------------------------------------------------------------------------------------------------------------
+			  
+	Kubelet Watches API Server:
+	
+		On Worker-3:  
+		
+			Kubelet watches API Server
+			
+		for Pods assigned to its node.	
+		
+		Kubelet sees:Pod assigned to worker-3
+		
+	Kubelet Creates Containers	
+	
+		Kubelet talks to Container Runtime:
+
+			Docker
+			containerd
+			CRI-O
+
+		Container runtime:
+
+			Pulls image
+			Creates container
+			Starts Pod
+--------------------------------------------------kube-proxy--------------------------------------------------------------		
+
+	Pod Networking Setup
+	
+		kube-proxy + CNI plugin:
+
+			Assign Pod IP
+			Configure networking
+			Configure Service routing
+ 
+	Kubelet Reports Status:
+
+		Kubelet sends Pod status to API Server:
+
+			ContainerCreating
+			Running
+			Failed
+			Succeeded
+
+		API Server stores latest status in etcd.	
+		
+COMPLETE FLOW DIAGRAM:
+
+
+		kubectl
+		   │
+		   ▼
+		API Server
+		   │
+		   ▼
+		ETCD stores Pod (Pending, no nodeName)
+		   │
+		   ▼
+		Scheduler watches API Server
+		   │
+		   ▼
+		Scheduler selects best node
+		   │
+		   ▼
+		Scheduler sends Binding → API Server
+		   │
+		   ▼
+		API Server updates ETCD (nodeName assigned)
+		   │
+		   ▼
+		Kubelet on selected node watches API Server
+		   │
+		   ▼
+		Kubelet asks container runtime
+		   │
+		   ▼
+		Container starts
+		   │
+		   ▼
+		Kubelet updates Pod status via API Server
+		   │
+		   ▼
+		ETCD updated		
+		
+		
+	Real-Time Analogy
+
+		Think of:
+
+			API Server = Receptionist
+			ETCD = Database/File Storage
+			Scheduler = Manager assigning rooms
+			Kubelet = Worker executing task
+
+		Manager (Scheduler) never directly accesses database.
+
+		Everything goes through receptionist (API Server).	
+		
+-----------------------------------------------------------------------------------------------------------------------------
+
+One-Line Summary
+
+	Scheduler watches API Server for unscheduled Pods,
+	selects best node,
+	and sends binding back through API Server,
+	which stores everything in ETCD.
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+Important Clarification:
+
+	Plain Pod
+
+	If you create:
+
+		kind: Pod
+
+	Then:
+
+		No ReplicaSet Controller involved
+
+	Scheduler directly schedules Pod.
+
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			
+			
+			
+			
+			
+			
+			
+			
+			
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+			
+			
+			
+			
+			
+		
+		
+	
+	
+	
+	
+	

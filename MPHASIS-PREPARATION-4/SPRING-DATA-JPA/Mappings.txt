@@ -1,0 +1,341 @@
+
+
+
+--------------------------------------------One To One-----------------------------------------------------------------  
+
+Exaples:
+
+One Person has one Passport.
+One Employee has one Address
+
+	If you want One-to-One Mapping without Cascade in Spring Data JPA, then you must save both entities separately.
+	
+@Entity
+@Table(name = "employee")
+public class Employee {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long empId;
+
+    private String empName;
+
+    @OneToOne
+    @JoinColumn(name = "address_id")
+    private Address address;
+	
+}
+
+@Entity
+@Table(name = "address")
+public class Address {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long addressId;
+}
+
+Since there is no cascade, save Address first, then Employee.
+
+ public Employee saveEmployee() {
+
+        Address address = new Address();
+        address.setCity("Hyderabad");
+        address.setState("Telangana");
+
+        // Save Address separately
+        Address savedAddress = addressRepository.save(address);
+
+        Employee employee = new Employee();
+        employee.setEmpName("Sunil");
+        employee.setAddress(savedAddress);
+
+        // Save Employee separately
+        return employeeRepository.save(employee);
+    }
+	
+Note: If you use @OneToOne without @JoinColumn, Hibernate/JPA will automatically create a foreign key column with a default name.
+
+@Entity
+public class Employee {
+
+    @Id
+    @GeneratedValue
+    private Long empId;
+
+    private String empName;
+
+    @OneToOne
+    private Address address;
+}
+
+@Entity
+public class Address {
+
+    @Id
+    @GeneratedValue
+    private Long addressId;
+
+    private String city;
+}
+
+<field_name>_<referenced_primary_key_column>
+
+private Address address;
+
+private Long addressId;
+
+employee
+---------
+emp_id
+emp_name
+address_address_id
+
+With @JoinColumn: to control the column name and improve readability.
+
+@OneToOne
+@JoinColumn(name = "address_id")
+private Address address;
+
+Q: Is @JoinColumn mandatory in One-To-One?
+
+Answer:No.
+
+
+-----------------------------
+
+mappedBy: 
+
+	Unidirectional
+		→ No mappedBy
+
+	Bidirectional
+		→ One side @JoinColumn (Owner)
+		→ Other side mappedBy (Inverse Side)
+	
+Interview Answer
+
+Q: Is mappedBy mandatory in One-to-One mapping?
+
+Answer:
+
+Unidirectional One-to-One: No, mappedBy is not used.
+Bidirectional One-to-One: One side should be the owner (@JoinColumn) and the other side should use mappedBy.
+
+mappedBy tells Hibernate which side owns the relationship and prevents creation of duplicate foreign keys.
+
+1. Unidirectional One-to-One
+
+Only one entity knows about the relationship.
+
+Employee → Address
+
+@Entity
+public class Employee {
+
+    @Id
+    @GeneratedValue
+    private Long empId;
+
+    private String empName;
+
+    @OneToOne
+    @JoinColumn(name = "address_id")
+    private Address address;
+}
+@Entity
+public class Address {
+
+    @Id
+    @GeneratedValue
+    private Long addressId;
+
+    private String city;
+}
+2. Bidirectional One-to-One
+
+Both entities know about each other.
+
+Employee (Owner Side)
+@Entity
+public class Employee {
+
+    @Id
+    @GeneratedValue
+    private Long empId;
+
+    @OneToOne
+    @JoinColumn(name = "address_id")
+    private Address address;
+}
+
+Address (Inverse Side)
+@Entity
+public class Address {
+
+    @Id
+    @GeneratedValue
+    private Long addressId;
+
+    @OneToOne(mappedBy = "address")
+    private Employee employee;
+}
+
+What does mappedBy mean?
+@OneToOne(mappedBy = "address")
+private Employee employee;
+
+means:
+
+I am NOT the owner.
+The relationship is managed by the
+'address' field in Employee entity.
+
+Here:
+
+private Address address;
+
+inside Employee owns the relationship.
+
+What happens if mappedBy is not used in bidirectional mapping?
+@Entity
+class Employee {
+
+    @OneToOne
+    private Address address;
+}
+
+@Entity
+class Address {
+
+    @OneToOne
+    private Employee employee;
+}
+
+Hibernate sees two owners.
+
+It may create:
+
+EMPLOYEE
+---------
+emp_id
+address_id
+
+ADDRESS
+--------
+address_id
+employee_id
+
+Two foreign keys are created, causing an unnecessary and often incorrect schema.
+
+Does @OneToOne create a join table?
+
+No.
+
+@OneToOne normally creates:
+
+--------------------------------------One To Many -------------------------------------------------
+
+
+"When does @OneToMany create 3 tables?"
+
+Answer:When @OneToMany is used without mappedBy and without @JoinColumn, Hibernate creates an additional join table, 
+	resulting in 3 tables.
+
+1. Unidirectional OneToMany
+
+	Only Department knows Employees.
+
+	Department Entity
+
+	@Entity
+	public class Department {
+
+		@Id
+		@GeneratedValue(strategy = GenerationType.IDENTITY)
+		private Long deptId;
+
+		private String deptName;
+
+		@OneToMany
+		@JoinColumn(name="dept_id")
+		private List<Employee> employees;
+	}
+	Employee Entity
+
+	@Entity
+	public class Employee {
+
+		@Id
+		@GeneratedValue(strategy = GenerationType.IDENTITY)
+		private Long empId;
+
+		private String empName;
+	}
+
+	What Happens?
+	Department dept = new Department();
+
+	Employee e1 = new Employee();
+	Employee e2 = new Employee();
+
+	dept.setEmployees(List.of(e1,e2));
+
+	Database:
+
+	Department
+	----------
+	10  IT
+
+	Employee
+	--------
+	101 Ram   10
+	102 Ravi  10
+
+	Without @JoinColumn
+	@OneToMany
+	private List<Employee> employees;
+
+	Hibernate creates an extra Join Table.
+
+	department_employee
+	-------------------
+	department_dept_id
+	employees_emp_id
+
+	Tables:
+
+	Department
+	Employee
+	Department_Employee
+
+	Extra table = Extra joins = Less efficient
+
+	Therefore use: for two tables
+
+	@OneToMany
+	@JoinColumn(name="dept_id")
+
+-------------------------------------------------
+
+| Mapping                             | Tables Created                    |
+| ----------------------------------- | --------------------------------- |
+| `@OneToMany` only                   | **3 tables** (join table created) |
+| `@OneToMany + @JoinColumn`          | **2 tables**                      |
+| `@OneToMany(mappedBy) + @ManyToOne` | **2 tables**                      |
+| `@OneToOne`                         | Usually **2 tables**              |
+
+
+
+| Relationship | Owner Side                 | Inverse Side                  |
+| ------------ | -------------------------- | ----------------------------- |
+| OneToOne     | `@OneToOne + @JoinColumn`  | `@OneToOne(mappedBy="...")`   |
+| OneToMany    | `@ManyToOne + @JoinColumn` | `@OneToMany(mappedBy="...")`  |
+| ManyToMany   | `@ManyToMany + @JoinTable` | `@ManyToMany(mappedBy="...")` |
+
+| Mapping                                   | Tables |
+| ----------------------------------------- | ------ |
+| OneToOne                                  | 2      |
+| OneToMany (with JoinColumn)               | 2      |
+| OneToMany (without JoinColumn & mappedBy) | 3      |
+| ManyToMany                                | 3      |
