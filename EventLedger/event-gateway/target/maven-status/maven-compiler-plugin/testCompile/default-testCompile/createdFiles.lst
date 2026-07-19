@@ -1,4 +1,0 @@
-com\eventledger\eventgateway\client\AccountServiceClientTest.class
-com\eventledger\eventgateway\service\EventGatewayServiceTest.class
-com\eventledger\eventgateway\controller\EventGatewayControllerTest.class
-com\eventledger\eventgateway\util\ValidationUtilTest.class
