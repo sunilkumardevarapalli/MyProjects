@@ -1,0 +1,133 @@
+The image lists a learning path under Collections & Data Structures:
+
+HashMap Internals
+Collision Handling
+ConcurrentHashMap
+Choosing the Right Data Structure
+
+Here is a quick overview of each topic:
+
+1. HashMap Internals
+
+HashMap stores data as key-value pairs.
+
+How it works
+Compute the key's hashCode().
+Apply a hashing algorithm to determine the bucket index.
+Store the entry in that bucket.
+During retrieval, calculate the same bucket and search for the key.
+Key Points
+Average time complexity: O(1) for put() and get().
+Allows one null key and multiple null values.
+Default capacity = 16
+Default load factor = 0.75
+Resizes when threshold is reached.
+2. Collision Handling
+
+A collision occurs when multiple keys map to the same bucket.
+
+Techniques Used in Java HashMap
+Java 7 and Earlier
+Collision handled using a Linked List.
+Java 8+
+Uses Linked List initially.
+Converts to a Red-Black Tree when bucket size exceeds a threshold (typically 8 entries).
+Benefits
+Linked List search: O(n)
+Red-Black Tree search: O(log n)
+Example
+key1 -> bucket 5
+key2 -> bucket 5
+key3 -> bucket 5
+
+
+All three entries are stored in the same bucket and managed through chaining.
+
+3. ConcurrentHashMap
+
+ConcurrentHashMap is a thread-safe alternative to HashMap.
+
+Why Not HashMap?
+
+HashMap is not safe for concurrent access by multiple threads.
+
+Features
+Supports high concurrency.
+Multiple threads can read simultaneously.
+Locking is more granular than Hashtable.
+Internal Mechanism
+Java 7
+Used Segment-based locking.
+Java 8+
+Uses:
+CAS (Compare-And-Swap)
+Bucket-level synchronization
+Lock-free reads
+Example
+ConcurrentHashMap<Integer, String> map =
+        new ConcurrentHashMap<>();
+
+Comparison
+Feature	HashMap	Hashtable	ConcurrentHashMapThread Safe	No	Yes	Yes
+Performance	Fast	Slow	High
+Null Key	Yes	No	No
+Null Value	Yes	No	No
+4. Choosing the Right Data Structure
+
+Selecting the correct data structure improves performance and memory usage.
+
+Common Choices
+ArrayList
+
+Use when:
+
+Frequent reads
+Rare insertions/deletions in the middle
+List<String> list = new ArrayList<>();
+
+LinkedList
+
+Use when:
+
+Frequent insertions/deletions
+List<String> list = new LinkedList<>();
+
+HashSet
+
+Use when:
+
+Unique elements required
+Fast lookup
+Set<Integer> set = new HashSet<>();
+
+TreeSet
+
+Use when:
+
+Sorted unique elements needed
+Set<Integer> set = new TreeSet<>();
+
+HashMap
+
+Use when:
+
+Fast key-value lookup required
+Map<Integer, String> map = new HashMap<>();
+
+TreeMap
+
+Use when:
+
+Sorted key-value storage required
+Map<Integer, String> map = new TreeMap<>();
+
+Quick Selection Guide
+Requirement	Recommended DSFast random access	ArrayList
+Frequent insert/delete	LinkedList
+Unique elements	HashSet
+Sorted unique elements	TreeSet
+Fast key-value lookup	HashMap
+Sorted key-value lookup	TreeMap
+Thread-safe key-value store	ConcurrentHashMap
+
+These four topics are among the most frequently asked Java Collections interview topics, especially for mid-level and senior Java developers.
