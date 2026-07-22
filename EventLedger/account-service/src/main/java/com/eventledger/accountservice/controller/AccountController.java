@@ -69,6 +69,19 @@ public class AccountController {
         }
     }
 
+@GetMapping("/{accountId}")
+    public ResponseEntity<AccountResponse> getAccount(@PathVariable String accountId) {
+        logger.debug("Fetching account details for account: {}", accountId);
+        try {
+            AccountResponse response = accountService.getAccount(accountId);
+            logger.info("Account details retrieved for account: {}", accountId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            metrics.recordError();
+            logger.error("Error fetching account: {}", accountId, e);
+            throw e;
+        }
+    }
     
 }
 
