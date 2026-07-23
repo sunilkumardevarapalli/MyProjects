@@ -71,11 +71,7 @@ public class EventGatewayService {
             accountServiceClient.processTransaction(request);
             savedEvent.setStatus(EventStatus.PROCESSED);
             eventRepository.save(savedEvent);
-        } catch (AccountServiceClient.ServiceUnavailableException ex) {
-            savedEvent.setStatus(EventStatus.FAILED);
-            eventRepository.save(savedEvent);
-            throw ex;
-        }
+        } 
 
         return convertToResponse(savedEvent);
     }
