@@ -27,9 +27,7 @@ public class EventGatewayMetrics {
                 .description("Total number of events created")
                 .register(meterRegistry);
 
-        this.eventRetrievalCounter = Counter.builder("events.retrieval.total")
-                .description("Total number of event retrievals")
-                .register(meterRegistry);
+       
 
         this.eventErrorCounter = Counter.builder("events.errors.total")
                 .description("Total number of event processing errors")
