@@ -50,9 +50,7 @@ public class EventGatewayMetrics {
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(meterRegistry);
 
-        this.activeEvents = meterRegistry.gauge("events.active.count",
-                new AtomicInteger(0),
-                AtomicInteger::get);
+
 
         logger.info("Event Gateway Metrics initialized");
     }
